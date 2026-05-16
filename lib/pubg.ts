@@ -20,17 +20,25 @@ export async function findPlayer(name: string, shard = "steam") {
   return json.data[0];
 }
 
-export async function getCurrentSeason(shard = "steam") {
+export async function getSeasonsList(shard = "steam") {
   const res = await fetch(`${BASE}/${shard}/seasons`, {
     headers: getHeaders(),
     next: { revalidate: 3600 },
   });
   if (!res.ok) throw new Error(`시즌 조회 오류 (${res.status})`);
   const json = await res.json();
-  const current = json.data.find(
-    (s: { attributes: { isCurrentSeason: boolean } }) =>
-      s.attributes.isCurrentSeason
-  );
+  return (json.data as Array<{ id: string; attributes: { isCurrentSeason: boolean; isOffseason: boolean } }>)
+    .filter((s) => /pc-2018-\d+/.test(s.id))
+    .sort((a, b) => {
+      const na = parseInt(a.id.match(/pc-2018-(\d+)/)![1]);
+      const nb = parseInt(b.id.match(/pc-2018-(\d+)/)![1]);
+      return nb - na;
+    });
+}
+
+export async function getCurrentSeason(shard = "steam") {
+  const seasons = await getSeasonsList(shard);
+  const current = seasons.find((s) => s.attributes.isCurrentSeason);
   if (!current) throw new Error("현재 시즌 정보를 찾을 수 없습니다.");
   return current;
 }
@@ -45,5 +53,14 @@ export async function getSeasonStats(
     { headers: getHeaders(), next: { revalidate: 300 } }
   );
   if (!res.ok) throw new Error(`스탯 조회 오류 (${res.status})`);
+  return await res.json();
+}
+
+export async function getLifetimeStats(accountId: string, shard = "steam") {
+  const res = await fetch(
+    `${BASE}/${shard}/players/${accountId}/seasons/lifetime`,
+    { headers: getHeaders(), next: { revalidate: 300 } }
+  );
+  if (!res.ok) throw new Error(`라이프타임 스탯 조회 오류 (${res.status})`);
   return await res.json();
 }

@@ -19,11 +19,17 @@ export default function Home() {
   const [playerName, setPlayerName] = useState("");
   const [playerData, setPlayerData] = useState<PlayerApiResponse | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [seasonLoading, setSeasonLoading] = useState(false);
 
-  // Holds the in-flight fetch promise so overlay can await it
   const fetchPromiseRef = useRef<Promise<PlayerApiResponse | null>>(
     Promise.resolve(null)
   );
+
+  const buildUrl = (name: string, season?: string) => {
+    const params = new URLSearchParams({ name, platform: "steam" });
+    if (season) params.set("season", season);
+    return `/api/player?${params}`;
+  };
 
   const handleSearch = useCallback((name: string) => {
     setPlayerName(name);
@@ -31,10 +37,7 @@ export default function Home() {
     setPlayerData(null);
     setFetchError(null);
 
-    // Start fetching immediately — runs in parallel with the overlay animation
-    fetchPromiseRef.current = fetch(
-      `/api/player?name=${encodeURIComponent(name)}&platform=steam`
-    )
+    fetchPromiseRef.current = fetch(buildUrl(name))
       .then(async (res) => {
         const json = await res.json();
         if (!res.ok) throw new Error(json.error ?? "분석 중 오류가 발생했습니다.");
@@ -47,14 +50,29 @@ export default function Home() {
       });
   }, []);
 
-  // Called when the overlay animation finishes (~5s)
-  // Awaits the fetch so we only show results when both are ready
   const handleAnalysisComplete = useCallback(async () => {
     const data = await fetchPromiseRef.current;
     if (data) setPlayerData(data);
     setPhase("result");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
+
+  const handleSeasonChange = useCallback(async (seasonId: string) => {
+    if (!playerName) return;
+    setSeasonLoading(true);
+    setFetchError(null);
+    try {
+      const res = await fetch(buildUrl(playerName, seasonId));
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "분석 중 오류가 발생했습니다.");
+      setPlayerData(json as PlayerApiResponse);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "네트워크 오류가 발생했습니다.";
+      setFetchError(msg);
+    } finally {
+      setSeasonLoading(false);
+    }
+  }, [playerName]);
 
   const handleReset = useCallback(() => {
     setPhase("landing");
@@ -81,7 +99,9 @@ export default function Home() {
             playerName={playerName}
             playerData={playerData}
             fetchError={fetchError}
+            seasonLoading={seasonLoading}
             onReset={handleReset}
+            onSeasonChange={handleSeasonChange}
           />
           <PersonaCards />
           <Footer />

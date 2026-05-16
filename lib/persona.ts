@@ -55,6 +55,8 @@ export interface PlayerApiResponse {
   radarValues: number[];
   insights: Insight[];
   recommendation: string;
+  seasonId: string;
+  seasonLabel: string;
 }
 
 // Pick the game mode with the most rounds played

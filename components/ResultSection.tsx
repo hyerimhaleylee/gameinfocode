@@ -14,7 +14,6 @@ const TIER_COLOR: Record<string, string> = {
   BRONZE: "#a16207",
 };
 
-// Fallback mock data shown when API returns no data (error state still shows UI)
 const FALLBACK: PlayerApiResponse = {
   name: "Unknown_Player",
   kd: "—",
@@ -33,7 +32,15 @@ const FALLBACK: PlayerApiResponse = {
   radarValues: [30, 30, 30, 30, 30, 30],
   insights: [],
   recommendation: "",
+  seasonId: "",
+  seasonLabel: "",
 };
+
+interface SeasonTab {
+  id: string;
+  label: string;
+  isCurrentSeason: boolean;
+}
 
 function ResultRadar({ values, size = 240 }: { values: number[]; size?: number }) {
   const cx = size / 2;
@@ -118,19 +125,39 @@ interface Props {
   playerName: string;
   playerData: PlayerApiResponse | null;
   fetchError: string | null;
+  seasonLoading: boolean;
   onReset: () => void;
+  onSeasonChange: (seasonId: string) => void;
 }
 
-export default function ResultSection({ playerName, playerData, fetchError, onReset }: Props) {
+export default function ResultSection({ playerName, playerData, fetchError, seasonLoading, onReset, onSeasonChange }: Props) {
   const [scanDone, setScanDone] = useState(false);
+  const [seasons, setSeasons] = useState<SeasonTab[]>([]);
+
   useEffect(() => {
     const t = setTimeout(() => setScanDone(true), 1600);
     return () => clearTimeout(t);
   }, []);
 
+  // Fetch seasons list once on mount
+  useEffect(() => {
+    fetch("/api/seasons")
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) setSeasons(data);
+      })
+      .catch(() => {});
+  }, []);
+
   const d = playerData ?? FALLBACK;
   const tierColor = TIER_COLOR[d.persona.tier] ?? "#94a3b8";
   const hasError = !playerData && !!fetchError;
+  const activeSeasonId = playerData?.seasonId ?? "";
+
+  const allTabs: SeasonTab[] = [
+    { id: "lifetime", label: "전체", isCurrentSeason: false },
+    ...seasons,
+  ];
 
   return (
     <section className="min-h-screen px-4 py-20 relative overflow-hidden">
@@ -144,10 +171,45 @@ export default function ResultSection({ playerName, playerData, fetchError, onRe
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.3 }}
           onClick={onReset}
-          className="flex items-center gap-2 text-xs font-mono text-slate-500 hover:text-cyan-400 transition-colors mb-10 tracking-widest uppercase"
+          className="flex items-center gap-2 text-xs font-mono text-slate-500 hover:text-cyan-400 transition-colors mb-8 tracking-widest uppercase"
         >
           ← Analyze Another Player
         </motion.button>
+
+        {/* ─── SEASON SELECTOR ─── */}
+        {allTabs.length > 1 && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="mb-6 flex items-center gap-2 flex-wrap"
+          >
+            <span className="text-[10px] font-mono text-slate-600 tracking-widest mr-1">SEASON</span>
+            {allTabs.map((tab) => {
+              const isActive = activeSeasonId === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => !isActive && !seasonLoading && onSeasonChange(tab.id)}
+                  disabled={seasonLoading}
+                  className={`px-3 py-1 text-[10px] font-mono tracking-wider border transition-all ${
+                    isActive
+                      ? "border-cyan-500/60 text-cyan-400 bg-cyan-500/10"
+                      : "border-white/10 text-slate-500 hover:border-slate-500/40 hover:text-slate-300"
+                  } ${seasonLoading ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}
+                >
+                  {tab.label}
+                  {tab.isCurrentSeason && <span className="ml-1 text-[8px] text-cyan-500/60">NOW</span>}
+                </button>
+              );
+            })}
+            {seasonLoading && (
+              <span className="text-[10px] font-mono text-cyan-400/60 tracking-widest animate-pulse ml-1">
+                LOADING...
+              </span>
+            )}
+          </motion.div>
+        )}
 
         {/* Error state */}
         {hasError && (
@@ -192,7 +254,7 @@ export default function ResultSection({ playerName, playerData, fetchError, onRe
             animate={{ clipPath: "inset(0 0 0% 0)" }}
             transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
           >
-            <div className="border border-cyan-500/20 relative"
+            <div className={`border border-cyan-500/20 relative transition-opacity duration-300 ${seasonLoading ? "opacity-40" : "opacity-100"}`}
               style={{
                 background: "linear-gradient(135deg, rgba(0,10,20,0.97) 0%, rgba(5,5,25,0.95) 100%)",
                 boxShadow: "0 0 60px rgba(0,245,255,0.07), inset 0 0 80px rgba(0,0,0,0.5)",
@@ -209,10 +271,15 @@ export default function ResultSection({ playerName, playerData, fetchError, onRe
                 <span className="text-[10px] font-mono text-cyan-400/60 tracking-[0.25em] uppercase">
                   GAMECODE ANALYSIS REPORT
                 </span>
-                <div className="flex items-center gap-2">
-                  <motion.span animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.5, repeat: Infinity }}
-                    className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                  <span className="text-[10px] font-mono text-slate-600 tracking-widest">REPORT GENERATED</span>
+                <div className="flex items-center gap-3">
+                  {d.seasonLabel && (
+                    <span className="text-[10px] font-mono text-slate-600 tracking-widest">{d.seasonLabel}</span>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <motion.span animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.5, repeat: Infinity }}
+                      className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                    <span className="text-[10px] font-mono text-slate-600 tracking-widest">REPORT GENERATED</span>
+                  </div>
                 </div>
               </div>
 
