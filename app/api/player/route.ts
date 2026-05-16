@@ -1,10 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  findPlayer,
-  getCurrentSeason,
-  getSeasonStats,
-  getLifetimeStats,
-} from "@/lib/pubg";
+import { findPlayer, getSeasonStats, getLifetimeStats } from "@/lib/pubg";
 import {
   extractBestModeStats,
   processStats,
@@ -15,7 +10,7 @@ import {
 } from "@/lib/persona";
 import type { RawModeStats } from "@/lib/persona";
 
-// Try name variants sequentially (steam first, then kakao) to avoid rate limit bursts.
+// Try name variants sequentially (steam first, then kakao) — max 2 API calls for most players.
 async function resolvePlayer(name: string) {
   const variants = [...new Set([name, name.toUpperCase(), name.toLowerCase()])];
 
@@ -45,6 +40,8 @@ function parseSeasonLabel(seasonId: string) {
 
 export async function GET(req: NextRequest) {
   const name = req.nextUrl.searchParams.get("name");
+  // season param: omit or "lifetime" → lifetime stats
+  //               specific season ID → that season (ID already known by client)
   const seasonParam = req.nextUrl.searchParams.get("season");
 
   if (!name) {
@@ -58,32 +55,24 @@ export async function GET(req: NextRequest) {
     let seasonId: string;
     let seasonLabel: string;
 
-    if (seasonParam === "lifetime") {
-      const data = await getLifetimeStats(player.id, shard);
-      gameModeStats = data.data.attributes.gameModeStats;
-      seasonId = "lifetime";
-      seasonLabel = "전체 (라이프타임)";
-    } else if (seasonParam) {
+    if (seasonParam && seasonParam !== "lifetime") {
+      // Specific season — client already knows the ID, no extra lookup needed
       const data = await getSeasonStats(player.id, seasonParam, shard);
-      gameModeStats = data.data.attributes.gameModeStats;
-      seasonId = seasonParam;
-      seasonLabel = parseSeasonLabel(seasonParam);
-    } else {
-      // Auto: try current season first, fall back to lifetime
-      const current = await getCurrentSeason(shard);
-      const data = await getSeasonStats(player.id, current.id, shard);
       gameModeStats = data.data.attributes.gameModeStats;
 
       const totalGames = Object.values(gameModeStats).reduce((s, m) => s + m.roundsPlayed, 0);
       if (totalGames === 0) {
-        const lifetime = await getLifetimeStats(player.id, shard);
-        gameModeStats = lifetime.data.attributes.gameModeStats;
-        seasonId = "lifetime";
-        seasonLabel = "전체 (라이프타임)";
-      } else {
-        seasonId = current.id;
-        seasonLabel = parseSeasonLabel(current.id);
+        return NextResponse.json({ error: "해당 시즌에 플레이 기록이 없습니다." }, { status: 404 });
       }
+
+      seasonId = seasonParam;
+      seasonLabel = parseSeasonLabel(seasonParam);
+    } else {
+      // Default: lifetime (always has data, only 1 extra API call)
+      const data = await getLifetimeStats(player.id, shard);
+      gameModeStats = data.data.attributes.gameModeStats;
+      seasonId = "lifetime";
+      seasonLabel = "전체 (라이프타임)";
     }
 
     const rawStats = extractBestModeStats(gameModeStats);
@@ -109,7 +98,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "분석 중 오류가 발생했습니다.";
-    const status = message.includes("찾을 수 없") ? 404 : 500;
+    const status = message.includes("찾을 수 없") || message.includes("없습니다") ? 404 : 500;
     return NextResponse.json({ error: message }, { status });
   }
 }
