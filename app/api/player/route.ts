@@ -9,26 +9,36 @@ import {
   calculateRadarValues,
 } from "@/lib/persona";
 
+// PUBG API is case-sensitive. Try original, uppercase, and lowercase across steam+kakao in parallel.
+async function resolvePlayer(name: string) {
+  const variants = Array.from(new Set([name, name.toUpperCase(), name.toLowerCase()]));
+  const shards = ["steam", "kakao"];
+
+  const attempts = variants.flatMap((v) => shards.map((s) => ({ name: v, shard: s })));
+
+  const results = await Promise.allSettled(
+    attempts.map(({ name: n, shard: s }) => findPlayer(n, s).then((p) => ({ player: p, shard: s })))
+  );
+
+  const found = results.find((r) => r.status === "fulfilled");
+  if (found && found.status === "fulfilled") return found.value;
+
+  throw new Error("플레이어를 찾을 수 없습니다. 닉네임을 확인해주세요.");
+}
+
 export async function GET(req: NextRequest) {
   const name = req.nextUrl.searchParams.get("name");
-  const platform = req.nextUrl.searchParams.get("platform") ?? "steam";
 
   if (!name) {
     return NextResponse.json({ error: "닉네임을 입력해주세요." }, { status: 400 });
   }
 
   try {
-    // Fetch player info and current season in parallel
-    const [player, season] = await Promise.all([
-      findPlayer(name, platform),
-      getCurrentSeason(platform),
-    ]);
-
-    // Fetch season stats
-    const seasonData = await getSeasonStats(player.id, season.id, platform);
+    const { player, shard } = await resolvePlayer(name);
+    const season = await getCurrentSeason(shard);
+    const seasonData = await getSeasonStats(player.id, season.id, shard);
     const gameModeStats = seasonData.data.attributes.gameModeStats;
 
-    // Process
     const rawStats = extractBestModeStats(gameModeStats);
     const stats = processStats(player.attributes.name, rawStats);
     const persona = determinePersona(stats);
