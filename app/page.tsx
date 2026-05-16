@@ -20,6 +20,7 @@ export default function Home() {
   const [playerData, setPlayerData] = useState<PlayerApiResponse | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [seasonLoading, setSeasonLoading] = useState(false);
+  const [cachedTeammates, setCachedTeammates] = useState<PlayerApiResponse["teammates"]>([]);
 
   // Cached from first successful response to skip re-lookup on season change
   const accountRef = useRef<{ accountId: string; shard: string } | null>(null);
@@ -41,6 +42,7 @@ export default function Home() {
     setPhase("scanning");
     setPlayerData(null);
     setFetchError(null);
+    setCachedTeammates([]);
     accountRef.current = null;
 
     fetchPromiseRef.current = fetch(buildUrl(name))
@@ -60,6 +62,7 @@ export default function Home() {
     const data = await fetchPromiseRef.current;
     if (data) {
       setPlayerData(data);
+      if (data.teammates.length > 0) setCachedTeammates(data.teammates);
       // Cache for fast season tab switching
       accountRef.current = { accountId: data.accountId, shard: data.shard };
     }
@@ -82,7 +85,9 @@ export default function Home() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "분석 중 오류가 발생했습니다.");
       const data = json as PlayerApiResponse;
-      setPlayerData(data);
+      // Restore cached teammates since season change doesn't fetch matches
+      const merged = { ...data, teammates: data.teammates.length > 0 ? data.teammates : cachedTeammates };
+      setPlayerData(merged);
       // Update cache in case shard changed
       accountRef.current = { accountId: data.accountId, shard: data.shard };
     } catch (err: unknown) {
@@ -91,7 +96,7 @@ export default function Home() {
     } finally {
       setSeasonLoading(false);
     }
-  }, [playerName]);
+  }, [playerName, cachedTeammates]);
 
   // Listen for teammate click-to-search events from ResultSection
   useEffect(() => {

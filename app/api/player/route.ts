@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { findPlayer, getSeasonStats, getLifetimeStats, getMatchTeammates } from "@/lib/pubg";
+import { findPlayer, getSeasonStats, getLifetimeStats, getTeammatesFromMatches } from "@/lib/pubg";
 import {
   extractBestModeStats,
   getAllModeRows,
@@ -96,6 +96,19 @@ export async function GET(req: NextRequest) {
           if (totalGamesIn(otherData.data.attributes.gameModeStats) > 0) {
             gameModeStats = otherData.data.attributes.gameModeStats;
             shard = otherShard;
+            // Re-fetch player from the other shard to get match IDs if we don't have any
+            if (recentMatchIds.length === 0) {
+              try {
+                const variants = [...new Set([name, name.toUpperCase(), name.toLowerCase()])];
+                for (const variant of variants) {
+                  try {
+                    const otherPlayer = await findPlayer(variant, otherShard);
+                    recentMatchIds = (otherPlayer.relationships?.matches?.data ?? []).map((m: { id: string }) => m.id);
+                    if (recentMatchIds.length > 0) break;
+                  } catch { /* continue */ }
+                }
+              } catch { /* non-critical */ }
+            }
           }
         } catch { /* stay with primary */ }
       }
@@ -112,11 +125,11 @@ export async function GET(req: NextRequest) {
     const recommendation = generateRecommendation(stats);
     const radarValues = calculateRadarValues(stats);
 
-    // Fetch teammates from most recent match (non-critical, best-effort)
-    let teammates: { name: string; accountId: string }[] = [];
+    // Fetch teammates from up to 20 recent matches (non-critical, best-effort)
+    let teammates: { name: string; accountId: string; sharedMatches: number }[] = [];
     if (recentMatchIds.length > 0) {
       try {
-        teammates = await getMatchTeammates(recentMatchIds[0], accountId, shard);
+        teammates = await getTeammatesFromMatches(recentMatchIds, accountId, shard, 20);
       } catch { /* non-critical */ }
     }
 

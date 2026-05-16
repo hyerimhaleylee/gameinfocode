@@ -95,15 +95,19 @@ function ResultRadar({ values, size = 220 }: { values: number[]; size?: number }
 }
 
 function ModeTable({ rows }: { rows: ModeRow[] }) {
-  const cols = ["모드", "게임 수", "K/D", "승률", "평균딜", "헤드샷", "TOP10"];
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-xs font-mono">
         <thead>
           <tr className="border-b border-white/8">
-            {cols.map((c) => (
-              <th key={c} className="py-2 px-3 text-left text-slate-500 tracking-wider font-normal">{c}</th>
-            ))}
+            <th className="py-2 px-3 text-left text-slate-500 tracking-wider font-normal">팀구성</th>
+            <th className="py-2 px-3 text-left text-slate-500 tracking-wider font-normal">시점</th>
+            <th className="py-2 px-3 text-left text-slate-500 tracking-wider font-normal">게임 수</th>
+            <th className="py-2 px-3 text-left text-slate-500 tracking-wider font-normal">K/D</th>
+            <th className="py-2 px-3 text-left text-slate-500 tracking-wider font-normal">승률</th>
+            <th className="py-2 px-3 text-left text-slate-500 tracking-wider font-normal">평균딜</th>
+            <th className="py-2 px-3 text-left text-slate-500 tracking-wider font-normal">헤드샷</th>
+            <th className="py-2 px-3 text-left text-slate-500 tracking-wider font-normal">TOP10</th>
           </tr>
         </thead>
         <tbody>
@@ -111,7 +115,8 @@ function ModeTable({ rows }: { rows: ModeRow[] }) {
             <motion.tr key={row.key} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.05 * i }}
               className="border-b border-white/5 hover:bg-white/3 transition-colors">
-              <td className="py-2.5 px-3 text-slate-200 font-medium">{row.label}</td>
+              <td className="py-2.5 px-3 text-slate-200 font-medium">{row.team}</td>
+              <td className="py-2.5 px-3 text-blue-300/70">{row.perspective}</td>
               <td className="py-2.5 px-3 text-slate-300">{row.gamesStr}</td>
               <td className="py-2.5 px-3 text-blue-300 font-semibold">{row.kdStr}</td>
               <td className="py-2.5 px-3 text-emerald-400">{row.winRateStr}</td>
@@ -401,19 +406,23 @@ export default function ResultSection({ playerName, playerData, fetchError, seas
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 2.0 }}
             className="border border-white/8 rounded-sm mb-5 p-5"
             style={{ background: "rgba(10,15,30,0.9)" }}>
-            <p className="text-[10px] font-mono text-slate-500 tracking-[0.2em] mb-3">// 최근 함께 플레이한 팀원</p>
+            <p className="text-[10px] font-mono text-slate-500 tracking-[0.2em] mb-3">// 최근 20경기 기준 함께 플레이한 팀원</p>
             <div className="flex flex-wrap gap-2">
               {d.teammates.map((tm) => (
                 <button key={tm.accountId}
                   onClick={() => {
                     window.scrollTo({ top: 0, behavior: "smooth" });
-                    // Dispatch custom event to trigger search
                     window.dispatchEvent(new CustomEvent("gamecode:search", { detail: tm.name }));
                   }}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-sm border border-white/10 hover:border-blue-400/30 hover:bg-blue-500/8 transition-all group">
                   <span className="w-1.5 h-1.5 rounded-full bg-blue-400/50 group-hover:bg-blue-400 transition-colors" />
                   <span className="text-sm text-slate-300 group-hover:text-white transition-colors font-mono">{tm.name}</span>
-                  <span className="text-[10px] text-slate-600 group-hover:text-blue-400/60 transition-colors">검색 →</span>
+                  {(tm as { sharedMatches?: number }).sharedMatches && (tm as { sharedMatches?: number }).sharedMatches! > 1 && (
+                    <span className="text-[9px] font-mono text-blue-400/50 group-hover:text-blue-400/70 transition-colors">
+                      {(tm as { sharedMatches?: number }).sharedMatches}경기
+                    </span>
+                  )}
+                  <span className="text-[10px] text-slate-600 group-hover:text-blue-400/60 transition-colors">→</span>
                 </button>
               ))}
             </div>

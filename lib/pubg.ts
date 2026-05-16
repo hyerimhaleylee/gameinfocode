@@ -73,11 +73,10 @@ export async function getLifetimeStats(accountId: string, shard = "steam") {
   return await res.json();
 }
 
-// Fetches the most recent match and returns squadmates (excluding the player themselves).
-export async function getMatchTeammates(
+async function fetchMatchTeammates(
   matchId: string,
   accountId: string,
-  shard = "steam"
+  shard: string
 ): Promise<{ name: string; accountId: string }[]> {
   const res = await pubgFetch(`${BASE}/${shard}/matches/${matchId}`);
   if (!res.ok) return [];
@@ -107,4 +106,45 @@ export async function getMatchTeammates(
     .map((p) => participants.find((pt) => pt.id === p.id))
     .filter((p): p is NonNullable<typeof p> => !!p)
     .map((p) => ({ name: p.attributes.stats.name, accountId: p.attributes.stats.playerId }));
+}
+
+// Aggregates squadmates from up to maxMatches recent matches, sorted by shared game count.
+export async function getTeammatesFromMatches(
+  matchIds: string[],
+  accountId: string,
+  shard = "steam",
+  maxMatches = 20
+): Promise<{ name: string; accountId: string; sharedMatches: number }[]> {
+  const ids = matchIds.slice(0, maxMatches);
+  const counts = new Map<string, { name: string; accountId: string; count: number }>();
+
+  for (const matchId of ids) {
+    const teammates = await fetchMatchTeammates(matchId, accountId, shard);
+    for (const t of teammates) {
+      const existing = counts.get(t.accountId);
+      if (existing) {
+        existing.count++;
+      } else {
+        counts.set(t.accountId, { name: t.name, accountId: t.accountId, count: 1 });
+      }
+    }
+    // Small delay between match fetches to avoid rate limiting
+    if (ids.indexOf(matchId) < ids.length - 1) {
+      await new Promise((r) => setTimeout(r, 300));
+    }
+  }
+
+  return Array.from(counts.values())
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 6)
+    .map((t) => ({ name: t.name, accountId: t.accountId, sharedMatches: t.count }));
+}
+
+// Keep for backward compatibility
+export async function getMatchTeammates(
+  matchId: string,
+  accountId: string,
+  shard = "steam"
+): Promise<{ name: string; accountId: string }[]> {
+  return fetchMatchTeammates(matchId, accountId, shard);
 }

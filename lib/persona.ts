@@ -42,6 +42,9 @@ export interface ProcessedStats {
 export interface ModeRow {
   key: string;
   label: string;
+  team: string;        // 스쿼드 | 듀오 | 솔로
+  perspective: string; // 1인칭(FPP) | 3인칭(TPP)
+  gameType: string;    // 일반전 (ranked is separate endpoint)
   gamesStr: string;
   wins: number;
   kdStr: string;
@@ -83,17 +86,22 @@ export interface PlayerApiResponse {
   modeKey: string;
   modeName: string;
   allModes: ModeRow[];
-  teammates: { name: string; accountId: string }[];
+  teammates: { name: string; accountId: string; sharedMatches: number }[];
 }
 
-const MODE_LABEL: Record<string, string> = {
-  "squad-fpp": "스쿼드 1인칭",
-  "squad":     "스쿼드 3인칭",
-  "duo-fpp":   "듀오 1인칭",
-  "duo":       "듀오 3인칭",
-  "solo-fpp":  "솔로 1인칭",
-  "solo":      "솔로 3인칭",
+const MODE_META: Record<string, { label: string; team: string; perspective: string }> = {
+  "squad-fpp": { label: "스쿼드 1인칭", team: "스쿼드", perspective: "1인칭 (FPP)" },
+  "squad":     { label: "스쿼드 3인칭", team: "스쿼드", perspective: "3인칭 (TPP)" },
+  "duo-fpp":   { label: "듀오 1인칭",   team: "듀오",   perspective: "1인칭 (FPP)" },
+  "duo":       { label: "듀오 3인칭",   team: "듀오",   perspective: "3인칭 (TPP)" },
+  "solo-fpp":  { label: "솔로 1인칭",   team: "솔로",   perspective: "1인칭 (FPP)" },
+  "solo":      { label: "솔로 3인칭",   team: "솔로",   perspective: "3인칭 (TPP)" },
 };
+
+// Keep backward-compat accessor
+const MODE_LABEL: Record<string, string> = Object.fromEntries(
+  Object.entries(MODE_META).map(([k, v]) => [k, v.label])
+);
 
 const MODE_ORDER = ["squad-fpp", "squad", "duo-fpp", "duo", "solo-fpp", "solo"];
 
@@ -131,9 +139,13 @@ export function getAllModeRows(
     .map((key) => {
       const m = gameModeStats[key];
       const s = processStats(playerName, m);
+      const meta = MODE_META[key] ?? { label: key, team: key, perspective: "-" };
       return {
         key,
-        label: MODE_LABEL[key] ?? key,
+        label: meta.label,
+        team: meta.team,
+        perspective: meta.perspective,
+        gameType: "일반전",
         gamesStr: m.roundsPlayed.toLocaleString(),
         wins: m.wins,
         kdStr: s.kdStr,
