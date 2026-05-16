@@ -1,8 +1,9 @@
 const BASE = "https://api.pubg.com/shards";
 
 function getHeaders(): HeadersInit {
+  const key = (process.env.PUBG_API_KEY ?? "").replace(/^﻿/, "").trim();
   return {
-    Authorization: `Bearer ${process.env.PUBG_API_KEY}`,
+    Authorization: `Bearer ${key}`,
     Accept: "application/vnd.api+json",
   };
 }
