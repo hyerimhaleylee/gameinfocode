@@ -8,23 +8,38 @@ function getHeaders(): HeadersInit {
   };
 }
 
+// Fetch wrapper that retries once on 429
+async function pubgFetch(url: string, init: RequestInit = {}): Promise<Response> {
+  const res = await fetch(url, { ...init, headers: getHeaders() });
+  if (res.status === 429) {
+    await new Promise((r) => setTimeout(r, 2500));
+    const retry = await fetch(url, { ...init, headers: getHeaders() });
+    return retry;
+  }
+  return res;
+}
+
 export async function findPlayer(name: string, shard = "steam") {
-  const res = await fetch(
+  const res = await pubgFetch(
     `${BASE}/${shard}/players?filter[playerNames]=${encodeURIComponent(name)}`,
-    { headers: getHeaders(), next: { revalidate: 60 } }
+    { next: { revalidate: 60 } } as RequestInit
   );
-  if (res.status === 404) throw new Error("플레이어를 찾을 수 없습니다.");
-  if (!res.ok) throw new Error(`PUBG API 오류 (${res.status})`);
+  if (res.status === 404 || !res.ok) {
+    const json = await res.json().catch(() => ({}));
+    if (res.status === 404 || json?.errors?.[0]?.title === "Not Found") {
+      throw new Error("NOT_FOUND");
+    }
+    throw new Error(`PUBG API 오류 (${res.status})`);
+  }
   const json = await res.json();
-  if (!json.data?.length) throw new Error("플레이어를 찾을 수 없습니다.");
+  if (!json.data?.length) throw new Error("NOT_FOUND");
   return json.data[0];
 }
 
 export async function getSeasonsList(shard = "steam") {
-  const res = await fetch(`${BASE}/${shard}/seasons`, {
-    headers: getHeaders(),
+  const res = await pubgFetch(`${BASE}/${shard}/seasons`, {
     next: { revalidate: 3600 },
-  });
+  } as RequestInit);
   if (!res.ok) throw new Error(`시즌 조회 오류 (${res.status})`);
   const json = await res.json();
   return (json.data as Array<{ id: string; attributes: { isCurrentSeason: boolean; isOffseason: boolean } }>)
@@ -43,23 +58,19 @@ export async function getCurrentSeason(shard = "steam") {
   return current;
 }
 
-export async function getSeasonStats(
-  accountId: string,
-  seasonId: string,
-  shard = "steam"
-) {
-  const res = await fetch(
+export async function getSeasonStats(accountId: string, seasonId: string, shard = "steam") {
+  const res = await pubgFetch(
     `${BASE}/${shard}/players/${accountId}/seasons/${seasonId}`,
-    { headers: getHeaders(), next: { revalidate: 300 } }
+    { next: { revalidate: 300 } } as RequestInit
   );
   if (!res.ok) throw new Error(`스탯 조회 오류 (${res.status})`);
   return await res.json();
 }
 
 export async function getLifetimeStats(accountId: string, shard = "steam") {
-  const res = await fetch(
+  const res = await pubgFetch(
     `${BASE}/${shard}/players/${accountId}/seasons/lifetime`,
-    { headers: getHeaders(), next: { revalidate: 300 } }
+    { next: { revalidate: 300 } } as RequestInit
   );
   if (!res.ok) throw new Error(`라이프타임 스탯 조회 오류 (${res.status})`);
   return await res.json();

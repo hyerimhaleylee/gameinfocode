@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   findPlayer,
-  getSeasonsList,
   getCurrentSeason,
   getSeasonStats,
   getLifetimeStats,
@@ -14,18 +13,28 @@ import {
   generateRecommendation,
   calculateRadarValues,
 } from "@/lib/persona";
+import type { RawModeStats } from "@/lib/persona";
 
-// PUBG API is case-sensitive. Try original, uppercase, and lowercase across steam+kakao in parallel.
+// Try name variants sequentially (steam first, then kakao) to avoid rate limit bursts.
 async function resolvePlayer(name: string) {
-  const variants = Array.from(new Set([name, name.toUpperCase(), name.toLowerCase()]));
-  const shards = ["steam", "kakao"];
-  const attempts = variants.flatMap((v) => shards.map((s) => ({ name: v, shard: s })));
+  const variants = [...new Set([name, name.toUpperCase(), name.toLowerCase()])];
 
-  const results = await Promise.allSettled(
-    attempts.map(({ name: n, shard: s }) => findPlayer(n, s).then((p) => ({ player: p, shard: s })))
-  );
-  const found = results.find((r) => r.status === "fulfilled");
-  if (found && found.status === "fulfilled") return found.value;
+  for (const variant of variants) {
+    try {
+      const player = await findPlayer(variant, "steam");
+      return { player, shard: "steam" };
+    } catch (e) {
+      if (e instanceof Error && e.message !== "NOT_FOUND") throw e;
+    }
+  }
+  for (const variant of variants) {
+    try {
+      const player = await findPlayer(variant, "kakao");
+      return { player, shard: "kakao" };
+    } catch (e) {
+      if (e instanceof Error && e.message !== "NOT_FOUND") throw e;
+    }
+  }
   throw new Error("플레이어를 찾을 수 없습니다. 닉네임을 확인해주세요.");
 }
 
@@ -36,7 +45,7 @@ function parseSeasonLabel(seasonId: string) {
 
 export async function GET(req: NextRequest) {
   const name = req.nextUrl.searchParams.get("name");
-  const seasonParam = req.nextUrl.searchParams.get("season"); // "lifetime" | season ID | null
+  const seasonParam = req.nextUrl.searchParams.get("season");
 
   if (!name) {
     return NextResponse.json({ error: "닉네임을 입력해주세요." }, { status: 400 });
@@ -45,7 +54,7 @@ export async function GET(req: NextRequest) {
   try {
     const { player, shard } = await resolvePlayer(name);
 
-    let gameModeStats: Record<string, import("@/lib/persona").RawModeStats>;
+    let gameModeStats: Record<string, RawModeStats>;
     let seasonId: string;
     let seasonLabel: string;
 
@@ -60,12 +69,12 @@ export async function GET(req: NextRequest) {
       seasonId = seasonParam;
       seasonLabel = parseSeasonLabel(seasonParam);
     } else {
-      // Auto: try current season, fallback to lifetime
+      // Auto: try current season first, fall back to lifetime
       const current = await getCurrentSeason(shard);
       const data = await getSeasonStats(player.id, current.id, shard);
       gameModeStats = data.data.attributes.gameModeStats;
 
-      const totalGames = Object.values(gameModeStats as Record<string, { roundsPlayed: number }>).reduce((s, m) => s + m.roundsPlayed, 0);
+      const totalGames = Object.values(gameModeStats).reduce((s, m) => s + m.roundsPlayed, 0);
       if (totalGames === 0) {
         const lifetime = await getLifetimeStats(player.id, shard);
         gameModeStats = lifetime.data.attributes.gameModeStats;
