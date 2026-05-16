@@ -21,13 +21,18 @@ export default function Home() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [seasonLoading, setSeasonLoading] = useState(false);
 
+  // Cached from first successful response to skip re-lookup on season change
+  const accountRef = useRef<{ accountId: string; shard: string } | null>(null);
+
   const fetchPromiseRef = useRef<Promise<PlayerApiResponse | null>>(
     Promise.resolve(null)
   );
 
-  const buildUrl = (name: string, season?: string) => {
-    const params = new URLSearchParams({ name, platform: "steam" });
-    if (season) params.set("season", season);
+  const buildUrl = (name: string, opts?: { season?: string; accountId?: string; shard?: string }) => {
+    const params = new URLSearchParams({ name });
+    if (opts?.season) params.set("season", opts.season);
+    if (opts?.accountId) params.set("accountId", opts.accountId);
+    if (opts?.shard) params.set("shard", opts.shard);
     return `/api/player?${params}`;
   };
 
@@ -36,6 +41,7 @@ export default function Home() {
     setPhase("scanning");
     setPlayerData(null);
     setFetchError(null);
+    accountRef.current = null;
 
     fetchPromiseRef.current = fetch(buildUrl(name))
       .then(async (res) => {
@@ -52,7 +58,11 @@ export default function Home() {
 
   const handleAnalysisComplete = useCallback(async () => {
     const data = await fetchPromiseRef.current;
-    if (data) setPlayerData(data);
+    if (data) {
+      setPlayerData(data);
+      // Cache for fast season tab switching
+      accountRef.current = { accountId: data.accountId, shard: data.shard };
+    }
     setPhase("result");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
@@ -62,10 +72,19 @@ export default function Home() {
     setSeasonLoading(true);
     setFetchError(null);
     try {
-      const res = await fetch(buildUrl(playerName, seasonId));
+      const cached = accountRef.current;
+      const url = buildUrl(playerName, {
+        season: seasonId,
+        accountId: cached?.accountId,
+        shard: cached?.shard,
+      });
+      const res = await fetch(url);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "분석 중 오류가 발생했습니다.");
-      setPlayerData(json as PlayerApiResponse);
+      const data = json as PlayerApiResponse;
+      setPlayerData(data);
+      // Update cache in case shard changed
+      accountRef.current = { accountId: data.accountId, shard: data.shard };
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "네트워크 오류가 발생했습니다.";
       setFetchError(msg);
@@ -79,6 +98,7 @@ export default function Home() {
     setPlayerName("");
     setPlayerData(null);
     setFetchError(null);
+    accountRef.current = null;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 

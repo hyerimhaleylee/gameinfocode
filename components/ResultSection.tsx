@@ -34,6 +34,8 @@ const FALLBACK: PlayerApiResponse = {
   recommendation: "",
   seasonId: "",
   seasonLabel: "",
+  accountId: "",
+  shard: "",
 };
 
 interface SeasonTab {

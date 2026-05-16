@@ -57,6 +57,8 @@ export interface PlayerApiResponse {
   recommendation: string;
   seasonId: string;
   seasonLabel: string;
+  accountId: string;
+  shard: string;
 }
 
 // Pick the game mode with the most rounds played
