@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 
 const MOCK = {
-  player: "Ottank",
+  player: "Unknown_Player",
   persona: "LEFT HAND CONFISCATED",
   personaKr: "왼손 압수",
   tier: "GOLD II",

@@ -182,7 +182,7 @@ export default function HeroSection() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
-                  placeholder="닉네임 입력 (예: Ottank)"
+                  placeholder="닉네임 입력 (예: Unknown_Player)"
                   className="w-full px-5 py-3.5 bg-white/4 border border-cyan-500/25 text-white placeholder-slate-600 text-sm tracking-wide focus:outline-none focus:border-cyan-400 transition-colors"
                   style={{ background: "rgba(0,245,255,0.03)" }}
                 />
