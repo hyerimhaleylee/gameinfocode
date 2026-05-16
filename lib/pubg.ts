@@ -108,7 +108,7 @@ async function fetchMatchTeammates(
     .map((p) => ({ name: p.attributes.stats.name, accountId: p.attributes.stats.playerId }));
 }
 
-// Aggregates squadmates from up to maxMatches recent matches, sorted by shared game count.
+// Aggregates squadmates from up to maxMatches recent matches in parallel, sorted by shared game count.
 export async function getTeammatesFromMatches(
   matchIds: string[],
   accountId: string,
@@ -118,19 +118,16 @@ export async function getTeammatesFromMatches(
   const ids = matchIds.slice(0, maxMatches);
   const counts = new Map<string, { name: string; accountId: string; count: number }>();
 
-  for (const matchId of ids) {
-    const teammates = await fetchMatchTeammates(matchId, accountId, shard);
-    for (const t of teammates) {
+  const results = await Promise.allSettled(
+    ids.map((id) => fetchMatchTeammates(id, accountId, shard))
+  );
+
+  for (const result of results) {
+    if (result.status !== "fulfilled") continue;
+    for (const t of result.value) {
       const existing = counts.get(t.accountId);
-      if (existing) {
-        existing.count++;
-      } else {
-        counts.set(t.accountId, { name: t.name, accountId: t.accountId, count: 1 });
-      }
-    }
-    // Small delay between match fetches to avoid rate limiting
-    if (ids.indexOf(matchId) < ids.length - 1) {
-      await new Promise((r) => setTimeout(r, 300));
+      if (existing) existing.count++;
+      else counts.set(t.accountId, { name: t.name, accountId: t.accountId, count: 1 });
     }
   }
 

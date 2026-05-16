@@ -417,9 +417,9 @@ export default function ResultSection({ playerName, playerData, fetchError, seas
                   className="flex items-center gap-2 px-3 py-1.5 rounded-sm border border-white/10 hover:border-blue-400/30 hover:bg-blue-500/8 transition-all group">
                   <span className="w-1.5 h-1.5 rounded-full bg-blue-400/50 group-hover:bg-blue-400 transition-colors" />
                   <span className="text-sm text-slate-300 group-hover:text-white transition-colors font-mono">{tm.name}</span>
-                  {(tm as { sharedMatches?: number }).sharedMatches && (tm as { sharedMatches?: number }).sharedMatches! > 1 && (
+                  {tm.sharedMatches > 1 && (
                     <span className="text-[9px] font-mono text-blue-400/50 group-hover:text-blue-400/70 transition-colors">
-                      {(tm as { sharedMatches?: number }).sharedMatches}경기
+                      {tm.sharedMatches}경기
                     </span>
                   )}
                   <span className="text-[10px] text-slate-600 group-hover:text-blue-400/60 transition-colors">→</span>
