@@ -1,19 +1,70 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
-const LOADING_STEPS = [
-  "Telemetry Scan Initialized…",
-  "Combat Pattern Detected…",
-  "Behavioral Matrix Loading…",
-  "Generating Player Profile…",
-];
+interface Props {
+  onSearch: (query: string) => void;
+}
 
-export default function HeroSection() {
+function BackgroundRadar({ size = 420 }: { size?: number }) {
+  const cx = size / 2;
+  const cy = size / 2;
+  const r = size * 0.44;
+
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      className="overflow-visible opacity-15"
+    >
+      {[0.3, 0.55, 0.8, 1.0].map((s, i) => (
+        <circle key={i} cx={cx} cy={cy} r={r * s}
+          fill="none" stroke="rgba(0,245,255,1)"
+          strokeWidth={s === 1 ? 0.8 : 0.5}
+          strokeDasharray={s < 1 ? "3 10" : undefined}
+        />
+      ))}
+      <line x1={cx - r} y1={cy} x2={cx + r} y2={cy} stroke="rgba(0,245,255,0.6)" strokeWidth="0.5" />
+      <line x1={cx} y1={cy - r} x2={cx} y2={cy + r} stroke="rgba(0,245,255,0.6)" strokeWidth="0.5" />
+      {[45, 135].map((deg) => {
+        const rad = (deg * Math.PI) / 180;
+        return (
+          <line key={deg}
+            x1={cx - r * Math.cos(rad)} y1={cy - r * Math.sin(rad)}
+            x2={cx + r * Math.cos(rad)} y2={cy + r * Math.sin(rad)}
+            stroke="rgba(0,245,255,0.3)" strokeWidth="0.4"
+          />
+        );
+      })}
+      <motion.g
+        animate={{ rotate: 360 }}
+        transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+        style={{ transformOrigin: `${cx}px ${cy}px` }}
+      >
+        {Array.from({ length: 20 }, (_, i) => {
+          const angle = -(i + 1) * 5;
+          const rad = (angle * Math.PI) / 180;
+          const opacity = Math.max(0, 0.6 - i * 0.03);
+          return (
+            <line key={i} x1={cx} y1={cy}
+              x2={cx + r * Math.cos(rad)} y2={cy + r * Math.sin(rad)}
+              stroke={`rgba(0,245,255,${opacity})`} strokeWidth="1"
+            />
+          );
+        })}
+        <line x1={cx} y1={cy} x2={cx + r} y2={cy}
+          stroke="rgba(0,245,255,1)" strokeWidth="1.2"
+        />
+      </motion.g>
+    </svg>
+  );
+}
+
+export default function HeroSection({ onSearch }: Props) {
   const [query, setQuery] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [loadingStep, setLoadingStep] = useState(0);
+  const [focused, setFocused] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animRef = useRef<number>(0);
 
@@ -30,13 +81,13 @@ export default function HeroSection() {
     resize();
 
     type Particle = { x: number; y: number; vx: number; vy: number; size: number; opacity: number };
-    const particles: Particle[] = Array.from({ length: 70 }, () => ({
+    const particles: Particle[] = Array.from({ length: 80 }, () => ({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
-      vx: (Math.random() - 0.5) * 0.25,
-      vy: (Math.random() - 0.5) * 0.25,
-      size: Math.random() * 1.4 + 0.3,
-      opacity: Math.random() * 0.4 + 0.08,
+      vx: (Math.random() - 0.5) * 0.22,
+      vy: (Math.random() - 0.5) * 0.22,
+      size: Math.random() * 1.2 + 0.2,
+      opacity: Math.random() * 0.35 + 0.06,
     }));
 
     const animate = () => {
@@ -50,7 +101,7 @@ export default function HeroSection() {
         if (p.y > canvas.height) p.y = 0;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(0, 245, 255, ${p.opacity})`;
+        ctx.fillStyle = `rgba(0,245,255,${p.opacity})`;
         ctx.fill();
       });
       animRef.current = requestAnimationFrame(animate);
@@ -64,76 +115,61 @@ export default function HeroSection() {
     };
   }, []);
 
-  const handleAnalyze = () => {
+  const handleSubmit = () => {
     if (!query.trim()) return;
-    setIsLoading(true);
-    setLoadingStep(0);
-    let step = 0;
-    const iv = setInterval(() => {
-      step++;
-      if (step >= LOADING_STEPS.length) {
-        clearInterval(iv);
-        return;
-      }
-      setLoadingStep(step);
-    }, 750);
-  };
-
-  const handleReset = () => {
-    setIsLoading(false);
-    setLoadingStep(0);
-    setQuery("");
+    onSearch(query.trim());
   };
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Canvas particles */}
       <canvas ref={canvasRef} className="absolute inset-0 z-0 pointer-events-none" />
-
-      {/* Tactical grid */}
       <div className="absolute inset-0 tactical-grid z-0" />
-
-      {/* Scan lines */}
       <div className="scan-lines" />
 
-      {/* Radial vignette */}
-      <div
-        className="absolute inset-0 z-0"
-        style={{
-          background:
-            "radial-gradient(ellipse 80% 60% at 50% 50%, transparent 20%, rgba(5,8,16,0.6) 70%, #050810 100%)",
-        }}
-      />
-
-      {/* HUD corner decorations */}
-      {[
-        "top-20 left-8 border-l-2 border-t-2",
-        "top-20 right-8 border-r-2 border-t-2",
-        "bottom-20 left-8 border-l-2 border-b-2",
-        "bottom-20 right-8 border-r-2 border-b-2",
-      ].map((cls, i) => (
-        <div key={i} className={`absolute w-12 h-12 ${cls} border-cyan-500/30 z-10`} />
-      ))}
-
-      {/* Crosshair center dot */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-0 opacity-5">
-        <div className="w-64 h-64 border border-cyan-400 rounded-full" />
-        <div className="absolute inset-4 border border-cyan-400/60 rounded-full" />
-        <div className="absolute top-1/2 left-0 right-0 h-px bg-cyan-400/40" />
-        <div className="absolute left-1/2 top-0 bottom-0 w-px bg-cyan-400/40" />
+      {/* Background radar — centered, large, subtle */}
+      <div className="absolute inset-0 flex items-center justify-center z-0 pointer-events-none">
+        <BackgroundRadar size={520} />
       </div>
 
-      {/* Content */}
-      <div className="relative z-10 text-center px-4 max-w-4xl mx-auto pt-20">
-        {/* Badge */}
+      {/* Vignette */}
+      <div className="absolute inset-0 z-0" style={{
+        background: "radial-gradient(ellipse 75% 65% at 50% 50%, transparent 10%, rgba(5,8,16,0.55) 65%, #050810 100%)"
+      }} />
+
+      {/* HUD corner brackets */}
+      {["top-20 left-8 border-l-2 border-t-2", "top-20 right-8 border-r-2 border-t-2",
+        "bottom-20 left-8 border-l-2 border-b-2", "bottom-20 right-8 border-r-2 border-b-2"].map((cls, i) => (
+        <div key={i} className={`absolute w-14 h-14 ${cls} border-cyan-500/30 z-10`} />
+      ))}
+
+      {/* Side ruler ticks */}
+      <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10 hidden lg:flex flex-col gap-6">
+        {Array.from({ length: 6 }, (_, i) => (
+          <div key={i} className="flex items-center gap-1">
+            <div className={`h-px bg-cyan-500/20 ${i === 2 ? "w-6" : "w-3"}`} />
+            <span className="text-[9px] font-mono text-cyan-500/20">{String(i + 1).padStart(2, "0")}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Main content */}
+      <div className="relative z-10 text-center px-4 max-w-3xl mx-auto pt-20">
+        {/* System badge */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.6 }}
-          className="inline-flex items-center gap-2 px-4 py-1.5 mb-10 border border-cyan-500/25 bg-cyan-500/5 text-cyan-400 text-xs tracking-[0.2em] uppercase"
+          transition={{ delay: 0.2 }}
+          className="inline-flex items-center gap-3 px-4 py-2 mb-10 border border-cyan-500/20"
+          style={{ background: "rgba(0,245,255,0.04)" }}
         >
-          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-          AI Tactical Analysis Platform · PUBG
+          <motion.span
+            animate={{ opacity: [1, 0.3, 1] }}
+            transition={{ duration: 1.2, repeat: Infinity }}
+            className="w-1.5 h-1.5 rounded-full bg-cyan-400"
+          />
+          <span className="text-[10px] font-mono text-cyan-400/80 tracking-[0.25em] uppercase">
+            Tactical AI Analysis System · PUBG · Online
+          </span>
         </motion.div>
 
         {/* Headline */}
@@ -141,147 +177,130 @@ export default function HeroSection() {
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.35, duration: 0.7 }}
-          className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-5 leading-[1.1] tracking-tight"
+          className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.08] tracking-tight mb-5"
         >
           <span className="text-white">AI가 읽어주는</span>
           <br />
-          <span
-            className="text-transparent bg-clip-text"
-            style={{
-              backgroundImage: "linear-gradient(135deg, #00f5ff 0%, #a855f7 100%)",
-            }}
-          >
+          <span className="text-transparent bg-clip-text"
+            style={{ backgroundImage: "linear-gradient(135deg, #00f5ff 0%, #a855f7 100%)" }}>
             당신의 배틀그라운드
           </span>
         </motion.h1>
 
-        {/* Sub */}
         <motion.p
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5, duration: 0.6 }}
-          className="text-slate-400 text-base sm:text-lg mb-12 tracking-wide"
+          transition={{ delay: 0.5 }}
+          className="text-slate-500 text-base sm:text-lg mb-12 tracking-wide"
         >
-          당신의 전적은 숫자가 아니라 플레이 스타일입니다.
+          전적은 숫자가 아니라 플레이 스타일입니다.
         </motion.p>
 
-        {/* Search / Loading */}
-        <AnimatePresence mode="wait">
-          {!isLoading ? (
-            <motion.div
-              key="search"
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ delay: 0.65, duration: 0.5 }}
-              className="flex flex-col sm:flex-row items-center gap-3 max-w-lg mx-auto"
+        {/* ── Military-style input ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.65 }}
+          className="max-w-xl mx-auto"
+        >
+          {/* Input label */}
+          <div className="flex items-center justify-between mb-2 px-1">
+            <span className="text-[10px] font-mono text-cyan-400/50 tracking-[0.25em] uppercase">
+              PLAYER ID ENTRY
+            </span>
+            <span className="text-[10px] font-mono text-slate-700 tracking-widest">
+              SYS.COMBAT.SCAN
+            </span>
+          </div>
+
+          {/* Input frame — outer border */}
+          <div
+            className="p-[1px] transition-all duration-300"
+            style={{
+              background: focused
+                ? "linear-gradient(135deg, rgba(0,245,255,0.6), rgba(168,85,247,0.4))"
+                : "linear-gradient(135deg, rgba(0,245,255,0.2), rgba(168,85,247,0.1))",
+            }}
+          >
+            <div
+              className="flex items-center"
+              style={{ background: "rgba(2,8,18,0.97)" }}
             >
-              <div className="relative flex-1 w-full">
-                <input
-                  type="text"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
-                  placeholder="닉네임 입력 (예: Unknown_Player)"
-                  className="w-full px-5 py-3.5 bg-white/4 border border-cyan-500/25 text-white placeholder-slate-600 text-sm tracking-wide focus:outline-none focus:border-cyan-400 transition-colors"
-                  style={{ background: "rgba(0,245,255,0.03)" }}
-                />
+              {/* Prompt */}
+              <div
+                className="flex items-center gap-2 pl-4 pr-3 py-4 border-r border-cyan-500/15 shrink-0"
+                style={{ background: "rgba(0,245,255,0.04)" }}
+              >
+                <span className="text-cyan-400 text-xs font-mono font-bold tracking-widest">SCAN ▸</span>
               </div>
+
+              {/* Input */}
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+                onFocus={() => setFocused(true)}
+                onBlur={() => setFocused(false)}
+                placeholder="Enter callsign…"
+                className="flex-1 px-4 py-4 bg-transparent font-mono text-white text-sm tracking-widest placeholder-slate-700 focus:outline-none"
+              />
+
+              {/* Blinking cursor when focused */}
+              {focused && (
+                <motion.span
+                  animate={{ opacity: [1, 0] }}
+                  transition={{ duration: 0.5, repeat: Infinity }}
+                  className="text-cyan-400 font-mono text-sm mr-3"
+                >_</motion.span>
+              )}
+
+              {/* Submit button */}
               <button
-                onClick={handleAnalyze}
-                className="px-6 py-3.5 text-xs font-bold text-black tracking-[0.2em] uppercase whitespace-nowrap transition-all duration-200 hover:brightness-110"
+                onClick={handleSubmit}
+                className="px-6 py-4 text-[11px] font-mono font-bold text-black tracking-[0.2em] uppercase shrink-0 transition-all duration-200"
                 style={{
-                  background: "linear-gradient(135deg, #00f5ff, #00d4ff)",
-                  boxShadow: "0 0 24px rgba(0,245,255,0.45)",
+                  background: query.trim()
+                    ? "linear-gradient(135deg, #00f5ff, #00d4e8)"
+                    : "rgba(0,245,255,0.15)",
+                  color: query.trim() ? "#000" : "rgba(0,245,255,0.3)",
+                  boxShadow: query.trim() ? "0 0 20px rgba(0,245,255,0.4)" : "none",
                 }}
               >
-                Analyze Player
+                ANALYZE
               </button>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="loading"
-              initial={{ opacity: 0, scale: 0.97 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="max-w-lg mx-auto"
-            >
-              <div
-                className="p-6 border border-cyan-500/25"
-                style={{ background: "rgba(0,10,20,0.7)", backdropFilter: "blur(12px)" }}
-              >
-                <div className="flex items-center justify-between mb-5">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-                    <span className="text-cyan-400 text-xs tracking-[0.18em] uppercase font-mono">
-                      Scanning: {query}
-                    </span>
-                  </div>
-                  <button onClick={handleReset} className="text-slate-600 hover:text-slate-400 text-xs transition-colors">
-                    ✕ Cancel
-                  </button>
-                </div>
-                <div className="space-y-2.5">
-                  {LOADING_STEPS.map((step, i) => (
-                    <motion.div
-                      key={step}
-                      initial={{ opacity: 0, x: -8 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.08 }}
-                      className={`flex items-center gap-3 text-sm font-mono transition-all ${
-                        i < loadingStep
-                          ? "text-cyan-400"
-                          : i === loadingStep
-                          ? "text-white"
-                          : "text-slate-700"
-                      }`}
-                    >
-                      <span className="text-xs w-3">
-                        {i < loadingStep ? "✓" : i === loadingStep ? "▸" : "○"}
-                      </span>
-                      {step}
-                      {i === loadingStep && (
-                        <span className="text-cyan-400 blink">_</span>
-                      )}
-                    </motion.div>
-                  ))}
-                </div>
-                {/* Progress bar */}
-                <div className="mt-5 h-px bg-white/5 overflow-hidden">
-                  <motion.div
-                    initial={{ width: "0%" }}
-                    animate={{ width: `${((loadingStep + 1) / LOADING_STEPS.length) * 100}%` }}
-                    transition={{ duration: 0.6 }}
-                    className="h-full"
-                    style={{ background: "linear-gradient(90deg, #00f5ff, #a855f7)", boxShadow: "0 0 8px rgba(0,245,255,0.6)" }}
-                  />
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
+          </div>
 
-        {/* Stats row */}
+          {/* Hint */}
+          <p className="text-[10px] font-mono text-slate-700 mt-2 text-right tracking-widest">
+            PRESS ENTER OR CLICK ANALYZE
+          </p>
+        </motion.div>
+
+        {/* Stats */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 1, duration: 0.6 }}
-          className="flex items-center justify-center gap-8 mt-14 text-center"
+          transition={{ delay: 1.0 }}
+          className="flex items-center justify-center gap-10 mt-16"
         >
           {[
-            { value: "50K+", label: "Players Analyzed" },
-            { value: "12", label: "Persona Types" },
-            { value: "98%", label: "Pattern Accuracy" },
+            { val: "50K+", label: "Players Scanned" },
+            { val: "12", label: "Persona Types" },
+            { val: "98%", label: "Pattern Accuracy" },
           ].map((s) => (
-            <div key={s.label}>
-              <p className="text-xl font-bold text-white">{s.value}</p>
-              <p className="text-xs text-slate-600 tracking-widest uppercase mt-0.5">{s.label}</p>
+            <div key={s.label} className="text-center">
+              <p className="text-xl font-bold text-white">{s.val}</p>
+              <p className="text-[10px] font-mono text-slate-600 tracking-[0.18em] uppercase mt-0.5">{s.label}</p>
             </div>
           ))}
         </motion.div>
       </div>
 
       {/* Bottom fade */}
-      <div className="absolute bottom-0 left-0 right-0 h-40 z-10" style={{ background: "linear-gradient(to top, #050810, transparent)" }} />
+      <div className="absolute bottom-0 left-0 right-0 h-48 z-10"
+        style={{ background: "linear-gradient(to top, #050810, transparent)" }} />
     </section>
   );
 }
