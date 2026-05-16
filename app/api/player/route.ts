@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { findPlayer, getSeasonStats, getLifetimeStats } from "@/lib/pubg";
+import { findPlayer, getSeasonStats, getLifetimeStats, getMatchTeammates } from "@/lib/pubg";
 import {
   extractBestModeStats,
+  getAllModeRows,
+  getModeLabel,
   processStats,
   determinePersona,
   generateInsights,
@@ -10,7 +12,6 @@ import {
 } from "@/lib/persona";
 import type { RawModeStats } from "@/lib/persona";
 
-// Try name variants sequentially — max 2 API calls for most players.
 async function resolvePlayer(name: string) {
   const variants = [...new Set([name, name.toUpperCase(), name.toLowerCase()])];
 
@@ -45,7 +46,6 @@ function parseSeasonLabel(seasonId: string) {
 export async function GET(req: NextRequest) {
   const name = req.nextUrl.searchParams.get("name");
   const seasonParam = req.nextUrl.searchParams.get("season");
-  // Fast-path params (returned from first search, avoids re-lookup on season change)
   const cachedAccountId = req.nextUrl.searchParams.get("accountId");
   const cachedShard = req.nextUrl.searchParams.get("shard");
 
@@ -57,9 +57,9 @@ export async function GET(req: NextRequest) {
     let accountId: string;
     let playerName: string;
     let shard: string;
+    let recentMatchIds: string[] = [];
 
     if (cachedAccountId && cachedShard) {
-      // Skip resolvePlayer — client already knows the account
       accountId = cachedAccountId;
       shard = cachedShard;
       playerName = name;
@@ -68,6 +68,7 @@ export async function GET(req: NextRequest) {
       accountId = player.id;
       playerName = player.attributes.name;
       shard = foundShard;
+      recentMatchIds = (player.relationships?.matches?.data ?? []).map((m: { id: string }) => m.id);
     }
 
     let gameModeStats: Record<string, RawModeStats>;
@@ -75,18 +76,16 @@ export async function GET(req: NextRequest) {
     let seasonLabel: string;
 
     if (seasonParam && seasonParam !== "lifetime") {
-      // Specific season — ID already known by client
       const data = await getSeasonStats(accountId, seasonParam, shard);
       gameModeStats = data.data.attributes.gameModeStats;
 
       if (totalGamesIn(gameModeStats) === 0) {
         return NextResponse.json({ error: "해당 시즌에 플레이 기록이 없습니다." }, { status: 404 });
       }
-
       seasonId = seasonParam;
       seasonLabel = parseSeasonLabel(seasonParam);
     } else {
-      // Default: lifetime. If primary shard has no data, try the other one.
+      // Default: lifetime. If primary shard has no data, try the other shard.
       const primaryData = await getLifetimeStats(accountId, shard);
       gameModeStats = primaryData.data.attributes.gameModeStats;
 
@@ -96,23 +95,30 @@ export async function GET(req: NextRequest) {
           const otherData = await getLifetimeStats(accountId, otherShard);
           if (totalGamesIn(otherData.data.attributes.gameModeStats) > 0) {
             gameModeStats = otherData.data.attributes.gameModeStats;
-            shard = otherShard; // update shard so season tabs use correct one
+            shard = otherShard;
           }
-        } catch {
-          // stay with primary shard
-        }
+        } catch { /* stay with primary */ }
       }
-
       seasonId = "lifetime";
       seasonLabel = "전체 (라이프타임)";
     }
 
-    const rawStats = extractBestModeStats(gameModeStats);
+    const { stats: rawStats, modeKey } = extractBestModeStats(gameModeStats);
     const stats = processStats(playerName, rawStats);
+    const modeName = getModeLabel(modeKey);
+    const allModes = getAllModeRows(gameModeStats, playerName);
     const persona = determinePersona(stats);
     const insights = generateInsights(stats);
     const recommendation = generateRecommendation(stats);
     const radarValues = calculateRadarValues(stats);
+
+    // Fetch teammates from most recent match (non-critical, best-effort)
+    let teammates: { name: string; accountId: string }[] = [];
+    if (recentMatchIds.length > 0) {
+      try {
+        teammates = await getMatchTeammates(recentMatchIds[0], accountId, shard);
+      } catch { /* non-critical */ }
+    }
 
     return NextResponse.json({
       name: stats.name,
@@ -129,6 +135,10 @@ export async function GET(req: NextRequest) {
       seasonLabel,
       accountId,
       shard,
+      modeKey,
+      modeName,
+      allModes,
+      teammates,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "분석 중 오류가 발생했습니다.";

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import PersonaCards from "@/components/PersonaCards";
@@ -93,6 +93,16 @@ export default function Home() {
     }
   }, [playerName]);
 
+  // Listen for teammate click-to-search events from ResultSection
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const name = (e as CustomEvent<string>).detail;
+      if (name) handleSearch(name);
+    };
+    window.addEventListener("gamecode:search", handler);
+    return () => window.removeEventListener("gamecode:search", handler);
+  }, [handleSearch]);
+
   const handleReset = useCallback(() => {
     setPhase("landing");
     setPlayerName("");
@@ -103,7 +113,7 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="bg-[#050810] min-h-screen overflow-x-hidden">
+    <main className="bg-[#080d1a] min-h-screen overflow-x-hidden">
       <Navbar />
 
       {phase === "scanning" && (

@@ -8,7 +8,6 @@ function getHeaders(): HeadersInit {
   };
 }
 
-// Fetch wrapper that retries once on 429
 async function pubgFetch(url: string, init: RequestInit = {}): Promise<Response> {
   const res = await fetch(url, { ...init, headers: getHeaders() });
   if (res.status === 429) {
@@ -24,16 +23,14 @@ export async function findPlayer(name: string, shard = "steam") {
     `${BASE}/${shard}/players?filter[playerNames]=${encodeURIComponent(name)}`,
     { next: { revalidate: 60 } } as RequestInit
   );
-  if (res.status === 404 || !res.ok) {
+  if (!res.ok) {
     const json = await res.json().catch(() => ({}));
-    if (res.status === 404 || json?.errors?.[0]?.title === "Not Found") {
-      throw new Error("NOT_FOUND");
-    }
+    if (res.status === 404 || json?.errors?.[0]?.title === "Not Found") throw new Error("NOT_FOUND");
     throw new Error(`PUBG API 오류 (${res.status})`);
   }
   const json = await res.json();
   if (!json.data?.length) throw new Error("NOT_FOUND");
-  return json.data[0];
+  return json.data[0]; // includes relationships.matches.data
 }
 
 export async function getSeasonsList(shard = "steam") {
@@ -74,4 +71,40 @@ export async function getLifetimeStats(accountId: string, shard = "steam") {
   );
   if (!res.ok) throw new Error(`라이프타임 스탯 조회 오류 (${res.status})`);
   return await res.json();
+}
+
+// Fetches the most recent match and returns squadmates (excluding the player themselves).
+export async function getMatchTeammates(
+  matchId: string,
+  accountId: string,
+  shard = "steam"
+): Promise<{ name: string; accountId: string }[]> {
+  const res = await pubgFetch(`${BASE}/${shard}/matches/${matchId}`);
+  if (!res.ok) return [];
+
+  const json = await res.json();
+  const included: unknown[] = json.included ?? [];
+
+  const participants = included.filter((x: unknown) => (x as { type: string }).type === "participant") as Array<{
+    id: string;
+    attributes: { stats: { playerId: string; name: string } };
+  }>;
+
+  const rosters = included.filter((x: unknown) => (x as { type: string }).type === "roster") as Array<{
+    relationships: { participants: { data: { id: string }[] } };
+  }>;
+
+  const ourParticipant = participants.find((p) => p.attributes?.stats?.playerId === accountId);
+  if (!ourParticipant) return [];
+
+  const ourRoster = rosters.find((r) =>
+    r.relationships?.participants?.data?.some((p) => p.id === ourParticipant.id)
+  );
+  if (!ourRoster) return [];
+
+  return ourRoster.relationships.participants.data
+    .filter((p) => p.id !== ourParticipant.id)
+    .map((p) => participants.find((pt) => pt.id === p.id))
+    .filter((p): p is NonNullable<typeof p> => !!p)
+    .map((p) => ({ name: p.attributes.stats.name, accountId: p.attributes.stats.playerId }));
 }

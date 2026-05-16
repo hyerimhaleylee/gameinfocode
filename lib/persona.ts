@@ -10,6 +10,15 @@ export interface RawModeStats {
   timeSurvived: number;
   top10s: number;
   wins: number;
+  heals: number;
+  boosts: number;
+  revives: number;
+  longestKill: number;
+  rideDistance: number;
+  walkDistance: number;
+  roundMostKills: number;
+  vehicleDestroys: number;
+  teamKills: number;
 }
 
 export interface ProcessedStats {
@@ -28,6 +37,18 @@ export interface ProcessedStats {
   avgDamageStr: string;
   headshotStr: string;
   gamesStr: string;
+}
+
+export interface ModeRow {
+  key: string;
+  label: string;
+  gamesStr: string;
+  wins: number;
+  kdStr: string;
+  winRateStr: string;
+  avgDamageStr: string;
+  headshotStr: string;
+  top10Str: string;
 }
 
 export interface Persona {
@@ -59,26 +80,69 @@ export interface PlayerApiResponse {
   seasonLabel: string;
   accountId: string;
   shard: string;
+  modeKey: string;
+  modeName: string;
+  allModes: ModeRow[];
+  teammates: { name: string; accountId: string }[];
 }
 
-// Pick the game mode with the most rounds played
+const MODE_LABEL: Record<string, string> = {
+  "squad-fpp": "스쿼드 1인칭",
+  "squad":     "스쿼드 3인칭",
+  "duo-fpp":   "듀오 1인칭",
+  "duo":       "듀오 3인칭",
+  "solo-fpp":  "솔로 1인칭",
+  "solo":      "솔로 3인칭",
+};
+
+const MODE_ORDER = ["squad-fpp", "squad", "duo-fpp", "duo", "solo-fpp", "solo"];
+
+// Prefer squad → duo → solo, and within each group pick whichever has more games
 export function extractBestModeStats(
   gameModeStats: Record<string, RawModeStats>
-): RawModeStats {
-  const MODES = ["squad-fpp", "squad", "solo-fpp", "solo", "duo-fpp", "duo"];
-  let best: RawModeStats | null = null;
-  let bestGames = 0;
+): { stats: RawModeStats; modeKey: string } {
+  const groups = [
+    ["squad-fpp", "squad"],
+    ["duo-fpp", "duo"],
+    ["solo-fpp", "solo"],
+  ];
 
-  for (const mode of MODES) {
-    const s = gameModeStats[mode];
-    if (s && s.roundsPlayed > bestGames) {
-      best = s;
-      bestGames = s.roundsPlayed;
-    }
+  for (const group of groups) {
+    const candidates = group
+      .map((key) => ({ key, stats: gameModeStats[key] }))
+      .filter((x) => x.stats?.roundsPlayed > 0)
+      .sort((a, b) => b.stats.roundsPlayed - a.stats.roundsPlayed);
+    if (candidates[0]) return { stats: candidates[0].stats, modeKey: candidates[0].key };
   }
 
-  if (!best) throw new Error("이번 시즌 플레이 기록이 없습니다.");
-  return best;
+  throw new Error("플레이 기록이 없습니다.");
+}
+
+export function getModeLabel(modeKey: string) {
+  return MODE_LABEL[modeKey] ?? modeKey;
+}
+
+export function getAllModeRows(
+  gameModeStats: Record<string, RawModeStats>,
+  playerName: string
+): ModeRow[] {
+  return MODE_ORDER
+    .filter((key) => gameModeStats[key]?.roundsPlayed > 0)
+    .map((key) => {
+      const m = gameModeStats[key];
+      const s = processStats(playerName, m);
+      return {
+        key,
+        label: MODE_LABEL[key] ?? key,
+        gamesStr: m.roundsPlayed.toLocaleString(),
+        wins: m.wins,
+        kdStr: s.kdStr,
+        winRateStr: s.winRateStr,
+        avgDamageStr: s.avgDamageStr,
+        headshotStr: s.headshotStr,
+        top10Str: s.top10Rate.toFixed(1) + "%",
+      };
+    });
 }
 
 export function processStats(name: string, raw: RawModeStats): ProcessedStats {
