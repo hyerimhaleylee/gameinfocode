@@ -1,6 +1,4 @@
-import Link from "next/link";
-
-export default function Footer() {
+export default function Footer({ onReset }: { onReset?: () => void }) {
   return (
     <footer className="border-t border-white/5 pt-16 pb-8 px-4 relative">
       <div
@@ -12,14 +10,14 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
           {/* Brand */}
           <div className="md:col-span-2">
-            <Link href="/" className="flex items-center gap-2 mb-4 w-fit">
+            <button onClick={onReset} className="flex items-center gap-2 mb-4 w-fit">
               <div className="w-6 h-6 border border-cyan-400/60 flex items-center justify-center">
                 <div className="w-2.5 h-2.5 bg-cyan-400" style={{ clipPath: "polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)" }} />
               </div>
               <span className="text-lg font-bold tracking-[0.2em] text-white">
                 GAME<span className="text-cyan-400">CODE</span>
               </span>
-            </Link>
+            </button>
             <p className="text-slate-600 text-sm leading-relaxed max-w-xs mb-5">
               AI가 읽어주는 당신의 게임.<br />
               플레이 데이터를 분석하여 전술 리포트와 AI 코칭을 제공합니다.

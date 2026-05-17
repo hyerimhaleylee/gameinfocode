@@ -126,7 +126,7 @@ export default function Home() {
 
   return (
     <main className="bg-[#080d1a] min-h-screen overflow-x-hidden">
-      <Navbar />
+      <Navbar onReset={handleReset} />
 
       {phase === "scanning" && (
         <AnalysisOverlay
@@ -148,7 +148,7 @@ export default function Home() {
             onSeasonChange={handleSeasonChange}
           />
           <PersonaCards />
-          <Footer />
+          <Footer onReset={handleReset} />
         </>
       ) : (
         <>
@@ -157,7 +157,7 @@ export default function Home() {
           <HowItWorks />
           <AICoachingPreview />
           <RadarChartSection />
-          <Footer />
+          <Footer onReset={handleReset} />
         </>
       )}
     </main>
