@@ -4,7 +4,12 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 
-const NAV_LINKS = ["Analyze", "Leaderboard", "Personas", "Community"];
+const NAV_LINKS = [
+  { label: "Analyze", href: "/" },
+  { label: "Leaderboard", href: "#" },
+  { label: "Personas", href: "/persona" },
+  { label: "Community", href: "#" },
+];
 
 export default function Navbar({ onReset }: { onReset?: () => void }) {
   const [scrolled, setScrolled] = useState(false);
@@ -43,11 +48,11 @@ export default function Navbar({ onReset }: { onReset?: () => void }) {
           <div className="hidden md:flex items-center gap-8">
             {NAV_LINKS.map((item) => (
               <Link
-                key={item}
-                href="#"
+                key={item.label}
+                href={item.href}
                 className="text-xs font-medium text-slate-400 hover:text-cyan-400 transition-colors duration-200 tracking-[0.15em] uppercase"
               >
-                {item}
+                {item.label}
               </Link>
             ))}
           </div>
@@ -81,11 +86,11 @@ export default function Navbar({ onReset }: { onReset?: () => void }) {
           <div className="md:hidden border-t border-cyan-500/15 py-4 space-y-3">
             {NAV_LINKS.map((item) => (
               <Link
-                key={item}
-                href="#"
+                key={item.label}
+                href={item.href}
                 className="block text-xs text-slate-400 hover:text-cyan-400 tracking-widest uppercase py-1"
               >
-                {item}
+                {item.label}
               </Link>
             ))}
             <div className="flex gap-3 pt-2">
