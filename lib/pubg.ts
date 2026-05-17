@@ -1,7 +1,20 @@
 const BASE = "https://api.pubg.com/shards";
 
-function getHeaders(): HeadersInit {
-  const key = (process.env.PUBG_API_KEY ?? "").replace(/^﻿/, "").trim();
+// Supports multiple comma-separated keys in PUBG_API_KEY for rate limit distribution
+function getApiKeys(): string[] {
+  const raw = (process.env.PUBG_API_KEY ?? "").replace(/^﻿/, "").trim();
+  return raw.split(",").map((k) => k.trim()).filter(Boolean);
+}
+
+let _keyIndex = 0;
+function pickKey(keys: string[]): string {
+  if (keys.length === 0) return "";
+  const key = keys[_keyIndex % keys.length];
+  _keyIndex = (_keyIndex + 1) % keys.length;
+  return key;
+}
+
+function makeHeaders(key: string): HeadersInit {
   return {
     Authorization: `Bearer ${key}`,
     Accept: "application/vnd.api+json",
@@ -9,11 +22,18 @@ function getHeaders(): HeadersInit {
 }
 
 async function pubgFetch(url: string, init: RequestInit = {}): Promise<Response> {
-  const res = await fetch(url, { ...init, headers: getHeaders() });
+  const keys = getApiKeys();
+  const key = pickKey(keys);
+  const res = await fetch(url, { ...init, headers: makeHeaders(key) });
   if (res.status === 429) {
+    // Immediately try next key before falling back to sleep
+    if (keys.length > 1) {
+      const nextKey = pickKey(keys);
+      const retry = await fetch(url, { ...init, headers: makeHeaders(nextKey) });
+      if (retry.status !== 429) return retry;
+    }
     await new Promise((r) => setTimeout(r, 2500));
-    const retry = await fetch(url, { ...init, headers: getHeaders() });
-    return retry;
+    return fetch(url, { ...init, headers: makeHeaders(pickKey(keys)) });
   }
   return res;
 }
