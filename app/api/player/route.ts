@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { findPlayerBulk, getSeasonStats, getLifetimeStats, getCurrentSeason, getRankedSeasonStats } from "@/lib/pubg";
+import { findPlayerBulk, getSeasonStats, getSeasonsList, getLifetimeStats, getCurrentSeason, getRankedSeasonStats } from "@/lib/pubg";
 import {
   extractBestModeStats,
   getAllModeRows,
@@ -102,7 +102,67 @@ export async function GET(req: NextRequest) {
       }
       seasonId = seasonParam;
       seasonLabel = parseSeasonLabel(seasonParam);
+    } else if (!seasonParam) {
+      // Auto-detect: find most recent season with records (max 3, parallel)
+      const seasonList = await getSeasonsList(shard);
+      const candidates = seasonList.slice(0, 3);
+
+      let foundSeason: { id: string; stats: Record<string, RawModeStats> } | null = null;
+      if (candidates.length > 0) {
+        const results = await Promise.all(
+          candidates.map(async (s) => {
+            try {
+              const data = await getSeasonStats(accountId, s.id, shard);
+              const stats = data.data.attributes.gameModeStats as Record<string, RawModeStats>;
+              return totalGamesIn(stats) > 0 ? { id: s.id, stats } : null;
+            } catch {
+              return null;
+            }
+          })
+        );
+        foundSeason = results.find((r) => r !== null) ?? null;
+      }
+
+      if (foundSeason) {
+        gameModeStats = foundSeason.stats;
+        seasonId = foundSeason.id;
+        seasonLabel = parseSeasonLabel(foundSeason.id);
+        const rankedRaw = await getRankedSeasonStats(accountId, foundSeason.id, shard);
+        rankedTier = extractRankedTier(rankedRaw);
+        if (rankedRaw) {
+          const rows = getAllRankedModeRows(rankedRaw);
+          if (rows.length > 0) rankedModes = rows;
+        }
+      } else {
+        // Fallback to lifetime
+        const [primaryData, currentSeason] = await Promise.all([
+          getLifetimeStats(accountId, shard),
+          getCurrentSeason(shard).catch(() => null),
+        ]);
+        gameModeStats = primaryData.data.attributes.gameModeStats;
+        if (totalGamesIn(gameModeStats) === 0) {
+          const otherShard = shard === "steam" ? "kakao" : "steam";
+          try {
+            const otherData = await getLifetimeStats(accountId, otherShard);
+            if (totalGamesIn(otherData.data.attributes.gameModeStats) > 0) {
+              gameModeStats = otherData.data.attributes.gameModeStats;
+              shard = otherShard;
+            }
+          } catch { /* stay with primary */ }
+        }
+        if (currentSeason) {
+          const rankedRaw = await getRankedSeasonStats(accountId, currentSeason.id, shard);
+          rankedTier = extractRankedTier(rankedRaw);
+          if (rankedRaw) {
+            const rows = getAllRankedModeRows(rankedRaw);
+            if (rows.length > 0) rankedModes = rows;
+          }
+        }
+        seasonId = "lifetime";
+        seasonLabel = "전체 (라이프타임)";
+      }
     } else {
+      // Explicit lifetime
       const [primaryData, currentSeason] = await Promise.all([
         getLifetimeStats(accountId, shard),
         getCurrentSeason(shard).catch(() => null),

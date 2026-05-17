@@ -26,6 +26,7 @@ const FALLBACK: PlayerApiResponse = {
 interface SeasonTab { id: string; label: string; isCurrentSeason: boolean; }
 
 function ResultRadar({ values, size = 220 }: { values: number[]; size?: number }) {
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const cx = size / 2, cy = size / 2, r = size * 0.36, n = AXES.length;
   const levels = [0.25, 0.5, 0.75, 1.0];
   const angle = (i: number) => (2 * Math.PI * i) / n - Math.PI / 2;
@@ -64,10 +65,30 @@ function ResultRadar({ values, size = 220 }: { values: number[]; size?: number }
         style={{ transformOrigin: `${cx}px ${cy}px` }} />
       {values.map((v, i) => {
         const p = pt(angle(i), v);
+        const ang = angle(i);
+        const isHovered = hoveredIdx === i;
+        const label = `${AXES[i]}: ${v}`;
+        const W = label.length * 5.4 + 10;
+        const H = 16;
+        const tx = p.x + Math.cos(ang) * 24;
+        const ty = p.y + Math.sin(ang) * 24;
         return (
           <motion.g key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2 + i * 0.07 }}>
             <circle cx={p.x} cy={p.y} r={5} fill="rgba(99,179,237,0.12)" />
             <circle cx={p.x} cy={p.y} r={2.5} fill="#63b3ed" filter="url(#rr-dot)" />
+            <circle cx={p.x} cy={p.y} r={9} fill="transparent" style={{ cursor: "crosshair" }}
+              onMouseEnter={() => setHoveredIdx(i)}
+              onMouseLeave={() => setHoveredIdx(null)} />
+            {isHovered && (
+              <g style={{ pointerEvents: "none" }}>
+                <rect x={tx - W / 2} y={ty - H / 2} width={W} height={H} rx={2}
+                  fill="rgba(8,13,26,0.94)" stroke="rgba(99,179,237,0.4)" strokeWidth="0.5" />
+                <text x={tx} y={ty} textAnchor="middle" dominantBaseline="middle"
+                  fill="#cbd5e1" fontSize="9" fontFamily="monospace" letterSpacing="0.3">
+                  {label}
+                </text>
+              </g>
+            )}
           </motion.g>
         );
       })}
@@ -171,6 +192,41 @@ function RankedTable({ rows }: { rows: RankedModeRow[] }) {
               </motion.tr>
             );
           })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+interface MapStatRow {
+  map: string; games: number; avgKills: string;
+  avgDamage: number; winRate: number; avgPlacement: string;
+}
+
+function MapStatsTable({ rows }: { rows: MapStatRow[] }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-xs font-mono">
+        <thead>
+          <tr className="border-b border-white/8">
+            {["맵", "게임수", "평균킬", "평균딜", "승률", "평균순위"].map((h) => (
+              <th key={h} className="py-2 px-3 text-left text-slate-500 tracking-wider font-normal">{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <motion.tr key={row.map} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.05 * i }}
+              className="border-b border-white/5 hover:bg-white/3 transition-colors">
+              <td className="py-2.5 px-3 text-slate-200 font-medium">{row.map}</td>
+              <td className="py-2.5 px-3 text-slate-300">{row.games}</td>
+              <td className="py-2.5 px-3 text-blue-300 font-semibold">{row.avgKills}</td>
+              <td className="py-2.5 px-3 text-slate-300">{row.avgDamage}</td>
+              <td className="py-2.5 px-3 text-emerald-400">{row.winRate}%</td>
+              <td className="py-2.5 px-3 text-slate-400">#{row.avgPlacement}</td>
+            </motion.tr>
+          ))}
         </tbody>
       </table>
     </div>
@@ -289,9 +345,33 @@ export default function ResultSection({ playerName, playerData, fetchError, seas
     return Array.from(counts.values()).sort((a, b) => b.count - a.count).slice(0, 8);
   }, [matches]);
 
+  const mapStats = useMemo((): MapStatRow[] => {
+    if (matches.length === 0) return [];
+    const acc = new Map<string, { kills: number; damage: number; wins: number; totalPlace: number; games: number }>();
+    for (const m of matches) {
+      const ex = acc.get(m.map);
+      if (ex) {
+        ex.games++; ex.kills += m.kills; ex.damage += m.damage;
+        if (m.placement === 1) ex.wins++;
+        ex.totalPlace += m.placement;
+      } else {
+        acc.set(m.map, { games: 1, kills: m.kills, damage: m.damage, wins: m.placement === 1 ? 1 : 0, totalPlace: m.placement });
+      }
+    }
+    return Array.from(acc.entries())
+      .map(([map, s]) => ({
+        map, games: s.games,
+        avgKills: (s.kills / s.games).toFixed(1),
+        avgDamage: Math.round(s.damage / s.games),
+        winRate: Math.round((s.wins / s.games) * 100),
+        avgPlacement: (s.totalPlace / s.games).toFixed(1),
+      }))
+      .sort((a, b) => b.games - a.games);
+  }, [matches]);
+
   const allTabs: SeasonTab[] = [
-    { id: "lifetime", label: "전체", isCurrentSeason: false },
     ...seasons,
+    { id: "lifetime", label: "전체", isCurrentSeason: false },
   ];
   const activeSeasonId = playerData?.seasonId ?? "";
 
@@ -565,6 +645,21 @@ export default function ResultSection({ playerName, playerData, fetchError, seas
             style={{ background: "rgba(255,255,255,0.02)" }}>
             <span className="text-slate-600 text-[10px] font-mono tracking-wider">// 랭크드</span>
             <span className="text-slate-600 text-[10px] font-mono">해당 시즌에 랭크드 기록이 없습니다.</span>
+          </motion.div>
+        )}
+
+        {/* ─── MAP STATS ─── */}
+        {mapStats.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 2.0 }}
+            className="border border-white/8 rounded-sm mb-5 overflow-hidden"
+            style={{ background: "rgba(10,15,30,0.9)" }}>
+            <div className="px-5 py-3 border-b border-white/6 flex items-center gap-2">
+              <span className="text-[10px] font-mono text-slate-500 tracking-[0.2em]">// 맵별 통계</span>
+              <span className="text-[9px] font-mono text-slate-700 ml-auto">최근 {matches.length}경기 기준</span>
+            </div>
+            <div className="p-2">
+              <MapStatsTable rows={mapStats} />
+            </div>
           </motion.div>
         )}
 
