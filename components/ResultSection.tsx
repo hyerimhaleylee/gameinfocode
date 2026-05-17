@@ -136,11 +136,13 @@ interface Props {
   playerData: PlayerApiResponse | null;
   fetchError: string | null;
   seasonLoading: boolean;
+  teammates: PlayerApiResponse["teammates"];
+  teammatesLoading: boolean;
   onReset: () => void;
   onSeasonChange: (seasonId: string) => void;
 }
 
-export default function ResultSection({ playerName, playerData, fetchError, seasonLoading, onReset, onSeasonChange }: Props) {
+export default function ResultSection({ playerName, playerData, fetchError, seasonLoading, teammates, teammatesLoading, onReset, onSeasonChange }: Props) {
   const [seasons, setSeasons] = useState<SeasonTab[]>([]);
   const [seasonError, setSeasonError] = useState<string | null>(null);
 
@@ -402,30 +404,37 @@ export default function ResultSection({ playerName, playerData, fetchError, seas
         )}
 
         {/* ─── TEAMMATES ─── */}
-        {d.teammates.length > 0 && (
+        {(teammatesLoading || teammates.length > 0) && (
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 2.0 }}
             className="border border-white/8 rounded-sm mb-5 p-5"
             style={{ background: "rgba(10,15,30,0.9)" }}>
             <p className="text-[10px] font-mono text-slate-500 tracking-[0.2em] mb-3">// 최근 20경기 기준 함께 플레이한 팀원</p>
-            <div className="flex flex-wrap gap-2">
-              {d.teammates.map((tm) => (
-                <button key={tm.accountId}
-                  onClick={() => {
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                    window.dispatchEvent(new CustomEvent("gamecode:search", { detail: tm.name }));
-                  }}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-sm border border-white/10 hover:border-blue-400/30 hover:bg-blue-500/8 transition-all group">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400/50 group-hover:bg-blue-400 transition-colors" />
-                  <span className="text-sm text-slate-300 group-hover:text-white transition-colors font-mono">{tm.name}</span>
-                  {tm.sharedMatches > 1 && (
-                    <span className="text-[9px] font-mono text-blue-400/50 group-hover:text-blue-400/70 transition-colors">
-                      {tm.sharedMatches}경기
-                    </span>
-                  )}
-                  <span className="text-[10px] text-slate-600 group-hover:text-blue-400/60 transition-colors">→</span>
-                </button>
-              ))}
-            </div>
+            {teammatesLoading && teammates.length === 0 ? (
+              <div className="flex items-center gap-2 text-[11px] font-mono text-slate-600 animate-pulse">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-400/40 animate-ping" />
+                팀원 정보 불러오는 중...
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {teammates.map((tm) => (
+                  <button key={tm.accountId}
+                    onClick={() => {
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                      window.dispatchEvent(new CustomEvent("gamecode:search", { detail: tm.name }));
+                    }}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-sm border border-white/10 hover:border-blue-400/30 hover:bg-blue-500/8 transition-all group">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400/50 group-hover:bg-blue-400 transition-colors" />
+                    <span className="text-sm text-slate-300 group-hover:text-white transition-colors font-mono">{tm.name}</span>
+                    {tm.sharedMatches > 1 && (
+                      <span className="text-[9px] font-mono text-blue-400/50 group-hover:text-blue-400/70 transition-colors">
+                        {tm.sharedMatches}경기
+                      </span>
+                    )}
+                    <span className="text-[10px] text-slate-600 group-hover:text-blue-400/60 transition-colors">→</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </motion.div>
         )}
 

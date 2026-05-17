@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { findPlayer, getSeasonStats, getLifetimeStats, getTeammatesFromMatches } from "@/lib/pubg";
+import { findPlayer, getSeasonStats, getLifetimeStats } from "@/lib/pubg";
 import {
   extractBestModeStats,
   getAllModeRows,
@@ -12,8 +12,14 @@ import {
 } from "@/lib/persona";
 import type { RawModeStats } from "@/lib/persona";
 
+// Try multiple case variants: exact, ALL UPPER, all lower, First Upper rest lower
+function caseVariants(name: string): string[] {
+  const titleCase = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+  return [...new Set([name, name.toUpperCase(), name.toLowerCase(), titleCase])];
+}
+
 async function resolvePlayer(name: string) {
-  const variants = [...new Set([name, name.toUpperCase(), name.toLowerCase()])];
+  const variants = caseVariants(name);
 
   for (const variant of variants) {
     try {
@@ -31,7 +37,7 @@ async function resolvePlayer(name: string) {
       if (e instanceof Error && e.message !== "NOT_FOUND") throw e;
     }
   }
-  throw new Error("플레이어를 찾을 수 없습니다. 닉네임을 확인해주세요.");
+  throw new Error("플레이어를 찾을 수 없습니다. 닉네임을 다시 확인해주세요.");
 }
 
 function totalGamesIn(stats: Record<string, RawModeStats>) {
@@ -57,7 +63,6 @@ export async function GET(req: NextRequest) {
     let accountId: string;
     let playerName: string;
     let shard: string;
-    let recentMatchIds: string[] = [];
 
     if (cachedAccountId && cachedShard) {
       accountId = cachedAccountId;
@@ -68,7 +73,6 @@ export async function GET(req: NextRequest) {
       accountId = player.id;
       playerName = player.attributes.name;
       shard = foundShard;
-      recentMatchIds = (player.relationships?.matches?.data ?? []).map((m: { id: string }) => m.id);
     }
 
     let gameModeStats: Record<string, RawModeStats>;
@@ -85,7 +89,6 @@ export async function GET(req: NextRequest) {
       seasonId = seasonParam;
       seasonLabel = parseSeasonLabel(seasonParam);
     } else {
-      // Default: lifetime. If primary shard has no data, try the other shard.
       const primaryData = await getLifetimeStats(accountId, shard);
       gameModeStats = primaryData.data.attributes.gameModeStats;
 
@@ -96,19 +99,6 @@ export async function GET(req: NextRequest) {
           if (totalGamesIn(otherData.data.attributes.gameModeStats) > 0) {
             gameModeStats = otherData.data.attributes.gameModeStats;
             shard = otherShard;
-            // Re-fetch player from the other shard to get match IDs if we don't have any
-            if (recentMatchIds.length === 0) {
-              try {
-                const variants = [...new Set([name, name.toUpperCase(), name.toLowerCase()])];
-                for (const variant of variants) {
-                  try {
-                    const otherPlayer = await findPlayer(variant, otherShard);
-                    recentMatchIds = (otherPlayer.relationships?.matches?.data ?? []).map((m: { id: string }) => m.id);
-                    if (recentMatchIds.length > 0) break;
-                  } catch { /* continue */ }
-                }
-              } catch { /* non-critical */ }
-            }
           }
         } catch { /* stay with primary */ }
       }
@@ -124,14 +114,6 @@ export async function GET(req: NextRequest) {
     const insights = generateInsights(stats);
     const recommendation = generateRecommendation(stats);
     const radarValues = calculateRadarValues(stats);
-
-    // Fetch teammates from up to 20 recent matches (non-critical, best-effort)
-    let teammates: { name: string; accountId: string; sharedMatches: number }[] = [];
-    if (recentMatchIds.length > 0) {
-      try {
-        teammates = await getTeammatesFromMatches(recentMatchIds, accountId, shard, 20);
-      } catch { /* non-critical */ }
-    }
 
     return NextResponse.json({
       name: stats.name,
@@ -151,7 +133,7 @@ export async function GET(req: NextRequest) {
       modeKey,
       modeName,
       allModes,
-      teammates,
+      teammates: [],
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "분석 중 오류가 발생했습니다.";

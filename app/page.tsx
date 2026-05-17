@@ -20,14 +20,11 @@ export default function Home() {
   const [playerData, setPlayerData] = useState<PlayerApiResponse | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [seasonLoading, setSeasonLoading] = useState(false);
-  const [cachedTeammates, setCachedTeammates] = useState<PlayerApiResponse["teammates"]>([]);
+  const [teammates, setTeammates] = useState<PlayerApiResponse["teammates"]>([]);
+  const [teammatesLoading, setTeammatesLoading] = useState(false);
 
-  // Cached from first successful response to skip re-lookup on season change
   const accountRef = useRef<{ accountId: string; shard: string } | null>(null);
-
-  const fetchPromiseRef = useRef<Promise<PlayerApiResponse | null>>(
-    Promise.resolve(null)
-  );
+  const fetchPromiseRef = useRef<Promise<PlayerApiResponse | null>>(Promise.resolve(null));
 
   const buildUrl = (name: string, opts?: { season?: string; accountId?: string; shard?: string }) => {
     const params = new URLSearchParams({ name });
@@ -37,12 +34,27 @@ export default function Home() {
     return `/api/player?${params}`;
   };
 
+  const fetchTeammates = useCallback(async (accountId: string, shard: string) => {
+    setTeammatesLoading(true);
+    try {
+      const res = await fetch(`/api/teammates?accountId=${encodeURIComponent(accountId)}&shard=${encodeURIComponent(shard)}`);
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        setTeammates(data);
+      }
+    } catch {
+      // non-critical
+    } finally {
+      setTeammatesLoading(false);
+    }
+  }, []);
+
   const handleSearch = useCallback((name: string) => {
     setPlayerName(name);
     setPhase("scanning");
     setPlayerData(null);
     setFetchError(null);
-    setCachedTeammates([]);
+    setTeammates([]);
     accountRef.current = null;
 
     fetchPromiseRef.current = fetch(buildUrl(name))
@@ -62,13 +74,13 @@ export default function Home() {
     const data = await fetchPromiseRef.current;
     if (data) {
       setPlayerData(data);
-      if (data.teammates.length > 0) setCachedTeammates(data.teammates);
-      // Cache for fast season tab switching
       accountRef.current = { accountId: data.accountId, shard: data.shard };
+      // Fetch teammates separately (non-blocking, appears after main result)
+      fetchTeammates(data.accountId, data.shard);
     }
     setPhase("result");
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, []);
+  }, [fetchTeammates]);
 
   const handleSeasonChange = useCallback(async (seasonId: string) => {
     if (!playerName) return;
@@ -84,21 +96,17 @@ export default function Home() {
       const res = await fetch(url);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "분석 중 오류가 발생했습니다.");
-      const data = json as PlayerApiResponse;
-      // Restore cached teammates since season change doesn't fetch matches
-      const merged = { ...data, teammates: data.teammates.length > 0 ? data.teammates : cachedTeammates };
-      setPlayerData(merged);
-      // Update cache in case shard changed
-      accountRef.current = { accountId: data.accountId, shard: data.shard };
+      setPlayerData(json as PlayerApiResponse);
+      accountRef.current = { accountId: json.accountId, shard: json.shard };
+      // teammates persist from previous fetch — no need to re-fetch
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "네트워크 오류가 발생했습니다.";
       setFetchError(msg);
     } finally {
       setSeasonLoading(false);
     }
-  }, [playerName, cachedTeammates]);
+  }, [playerName]);
 
-  // Listen for teammate click-to-search events from ResultSection
   useEffect(() => {
     const handler = (e: Event) => {
       const name = (e as CustomEvent<string>).detail;
@@ -113,6 +121,7 @@ export default function Home() {
     setPlayerName("");
     setPlayerData(null);
     setFetchError(null);
+    setTeammates([]);
     accountRef.current = null;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
@@ -135,6 +144,8 @@ export default function Home() {
             playerData={playerData}
             fetchError={fetchError}
             seasonLoading={seasonLoading}
+            teammates={teammates}
+            teammatesLoading={teammatesLoading}
             onReset={handleReset}
             onSeasonChange={handleSeasonChange}
           />

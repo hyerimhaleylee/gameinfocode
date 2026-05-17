@@ -137,11 +137,10 @@ export async function getTeammatesFromMatches(
     .map((t) => ({ name: t.name, accountId: t.accountId, sharedMatches: t.count }));
 }
 
-// Keep for backward compatibility
-export async function getMatchTeammates(
-  matchId: string,
-  accountId: string,
-  shard = "steam"
-): Promise<{ name: string; accountId: string }[]> {
-  return fetchMatchTeammates(matchId, accountId, shard);
+// Fetch a single player by account ID (used by teammates endpoint)
+export async function getPlayerById(accountId: string, shard = "steam") {
+  const res = await pubgFetch(`${BASE}/${shard}/players/${accountId}`);
+  if (!res.ok) throw new Error(`플레이어 조회 오류 (${res.status})`);
+  const json = await res.json();
+  return json.data;
 }
