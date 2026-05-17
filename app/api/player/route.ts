@@ -103,24 +103,17 @@ export async function GET(req: NextRequest) {
       seasonId = seasonParam;
       seasonLabel = parseSeasonLabel(seasonParam);
     } else if (!seasonParam) {
-      // Auto-detect: find most recent season with records (max 3, parallel)
+      // Auto-detect: try most recent 3 seasons sequentially, stop at first with records
       const seasonList = await getSeasonsList(shard);
       const candidates = seasonList.slice(0, 3);
 
       let foundSeason: { id: string; stats: Record<string, RawModeStats> } | null = null;
-      if (candidates.length > 0) {
-        const results = await Promise.all(
-          candidates.map(async (s) => {
-            try {
-              const data = await getSeasonStats(accountId, s.id, shard);
-              const stats = data.data.attributes.gameModeStats as Record<string, RawModeStats>;
-              return totalGamesIn(stats) > 0 ? { id: s.id, stats } : null;
-            } catch {
-              return null;
-            }
-          })
-        );
-        foundSeason = results.find((r) => r !== null) ?? null;
+      for (const s of candidates) {
+        try {
+          const data = await getSeasonStats(accountId, s.id, shard);
+          const stats = data.data.attributes.gameModeStats as Record<string, RawModeStats>;
+          if (totalGamesIn(stats) > 0) { foundSeason = { id: s.id, stats }; break; }
+        } catch { /* try next */ }
       }
 
       if (foundSeason) {

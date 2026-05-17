@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
 
     if (matchIds.length === 0) return NextResponse.json([]);
 
-    const matches = await getMatchHistory(matchIds, accountId, shard, 5);
+    const matches = await getMatchHistory(matchIds, accountId, shard, 20);
     return NextResponse.json(matches);
   } catch {
     return NextResponse.json([]);

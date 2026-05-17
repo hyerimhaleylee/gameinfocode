@@ -198,41 +198,6 @@ function RankedTable({ rows }: { rows: RankedModeRow[] }) {
   );
 }
 
-interface MapStatRow {
-  map: string; games: number; avgKills: string;
-  avgDamage: number; winRate: number; avgPlacement: string;
-}
-
-function MapStatsTable({ rows }: { rows: MapStatRow[] }) {
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-xs font-mono">
-        <thead>
-          <tr className="border-b border-white/8">
-            {["맵", "게임수", "평균킬", "평균딜", "승률", "평균순위"].map((h) => (
-              <th key={h} className="py-2 px-3 text-left text-slate-500 tracking-wider font-normal">{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, i) => (
-            <motion.tr key={row.map} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.05 * i }}
-              className="border-b border-white/5 hover:bg-white/3 transition-colors">
-              <td className="py-2.5 px-3 text-slate-200 font-medium">{row.map}</td>
-              <td className="py-2.5 px-3 text-slate-300">{row.games}</td>
-              <td className="py-2.5 px-3 text-blue-300 font-semibold">{row.avgKills}</td>
-              <td className="py-2.5 px-3 text-slate-300">{row.avgDamage}</td>
-              <td className="py-2.5 px-3 text-emerald-400">{row.winRate}%</td>
-              <td className="py-2.5 px-3 text-slate-400">#{row.avgPlacement}</td>
-            </motion.tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
 function formatDate(iso: string) {
   const d = new Date(iso);
   const diffMin = Math.floor((Date.now() - d.getTime()) / 60000);
@@ -343,30 +308,6 @@ export default function ResultSection({ playerName, playerData, fetchError, seas
       }
     }
     return Array.from(counts.values()).sort((a, b) => b.count - a.count).slice(0, 8);
-  }, [matches]);
-
-  const mapStats = useMemo((): MapStatRow[] => {
-    if (matches.length === 0) return [];
-    const acc = new Map<string, { kills: number; damage: number; wins: number; totalPlace: number; games: number }>();
-    for (const m of matches) {
-      const ex = acc.get(m.map);
-      if (ex) {
-        ex.games++; ex.kills += m.kills; ex.damage += m.damage;
-        if (m.placement === 1) ex.wins++;
-        ex.totalPlace += m.placement;
-      } else {
-        acc.set(m.map, { games: 1, kills: m.kills, damage: m.damage, wins: m.placement === 1 ? 1 : 0, totalPlace: m.placement });
-      }
-    }
-    return Array.from(acc.entries())
-      .map(([map, s]) => ({
-        map, games: s.games,
-        avgKills: (s.kills / s.games).toFixed(1),
-        avgDamage: Math.round(s.damage / s.games),
-        winRate: Math.round((s.wins / s.games) * 100),
-        avgPlacement: (s.totalPlace / s.games).toFixed(1),
-      }))
-      .sort((a, b) => b.games - a.games);
   }, [matches]);
 
   const allTabs: SeasonTab[] = [
@@ -648,17 +589,26 @@ export default function ResultSection({ playerName, playerData, fetchError, seas
           </motion.div>
         )}
 
-        {/* ─── MAP STATS ─── */}
-        {mapStats.length > 0 && (
+        {/* ─── 자주 함께한 플레이어 ─── */}
+        {frequentTeammates.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 2.0 }}
             className="border border-white/8 rounded-sm mb-5 overflow-hidden"
             style={{ background: "rgba(10,15,30,0.9)" }}>
             <div className="px-5 py-3 border-b border-white/6 flex items-center gap-2">
-              <span className="text-[10px] font-mono text-slate-500 tracking-[0.2em]">// 맵별 통계</span>
+              <span className="text-[10px] font-mono text-slate-500 tracking-[0.2em]">// 자주 함께한 플레이어</span>
               <span className="text-[9px] font-mono text-slate-700 ml-auto">최근 {matches.length}경기 기준</span>
             </div>
-            <div className="p-2">
-              <MapStatsTable rows={mapStats} />
+            <div className="p-4 flex flex-wrap gap-2">
+              {frequentTeammates.map((tm, i) => (
+                <motion.button key={tm.accountId} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.04 * i }}
+                  onClick={() => searchPlayer(tm.name)}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-sm border border-white/10 hover:border-blue-400/35 hover:bg-blue-500/8 transition-all group text-xs font-mono">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400/40 group-hover:bg-blue-400 transition-colors flex-shrink-0" />
+                  <span className="text-slate-200 group-hover:text-white transition-colors">{tm.name}</span>
+                  <span className="text-[10px] text-blue-400/50 group-hover:text-blue-400/80 transition-colors">{tm.count}경기</span>
+                </motion.button>
+              ))}
             </div>
           </motion.div>
         )}
@@ -683,24 +633,6 @@ export default function ResultSection({ playerName, playerData, fetchError, seas
               ))}
             </div>
 
-            {/* Frequent teammates aggregated from match history */}
-            {frequentTeammates.length > 0 && (
-              <div className="px-5 py-3 border-t border-white/6">
-                <p className="text-[10px] font-mono text-slate-600 tracking-[0.2em] mb-2.5">// 자주 함께한 플레이어</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {frequentTeammates.map((tm) => (
-                    <button key={tm.accountId} onClick={() => searchPlayer(tm.name)}
-                      className="flex items-center gap-2 px-3 py-1.5 rounded-sm border border-white/10 hover:border-blue-400/30 hover:bg-blue-500/8 transition-all group text-[11px] font-mono">
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-400/40 group-hover:bg-blue-400 transition-colors" />
-                      <span className="text-slate-300 group-hover:text-white transition-colors">{tm.name}</span>
-                      {tm.count > 1 && (
-                        <span className="text-[9px] text-blue-400/40 group-hover:text-blue-400/70 transition-colors">{tm.count}경기</span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
           </motion.div>
         )}
 

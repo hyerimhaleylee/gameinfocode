@@ -224,13 +224,17 @@ export async function getMatchHistory(
   matchIds: string[],
   accountId: string,
   shard = "steam",
-  maxMatches = 5
+  maxMatches = 20
 ): Promise<MatchEntry[]> {
   const ids = matchIds.slice(0, maxMatches);
   const results: MatchEntry[] = [];
-  for (const id of ids) {
-    const entry = await fetchMatchDetail(id, accountId, shard);
-    if (entry) results.push(entry);
+  const batchSize = 5;
+  for (let i = 0; i < ids.length; i += batchSize) {
+    const batch = ids.slice(i, i + batchSize);
+    const batchResults = await Promise.all(
+      batch.map((id) => fetchMatchDetail(id, accountId, shard).catch(() => null))
+    );
+    results.push(...batchResults.filter((r): r is MatchEntry => r !== null));
   }
   return results;
 }
