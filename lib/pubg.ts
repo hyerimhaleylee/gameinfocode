@@ -226,17 +226,16 @@ export async function getMatchHistory(
   shard = "steam",
   maxMatches = 20
 ): Promise<MatchEntry[]> {
-  const ids = matchIds.slice(0, maxMatches);
   const results: MatchEntry[] = [];
   const batchSize = 5;
-  for (let i = 0; i < ids.length; i += batchSize) {
-    const batch = ids.slice(i, i + batchSize);
+  for (let i = 0; i < matchIds.length && results.length < maxMatches; i += batchSize) {
+    const batch = matchIds.slice(i, i + batchSize);
     const batchResults = await Promise.all(
       batch.map((id) => fetchMatchDetail(id, accountId, shard).catch(() => null))
     );
     results.push(...batchResults.filter((r): r is MatchEntry => r !== null));
   }
-  return results;
+  return results.slice(0, maxMatches);
 }
 
 export async function getRankedSeasonStats(
