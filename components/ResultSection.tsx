@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { PlayerApiResponse, ModeRow, RankedModeRow } from "@/lib/persona";
 import type { MatchEntry } from "@/lib/pubg";
@@ -282,12 +282,27 @@ interface Props {
 export default function ResultSection({ playerName, playerData, fetchError, seasonLoading, matches, matchesLoading, onReset, onSeasonChange }: Props) {
   const [seasons, setSeasons] = useState<SeasonTab[]>([]);
   const [seasonError, setSeasonError] = useState<string | null>(null);
+  const autoSwitchedRef = useRef(false);
+  const lastAccountIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     fetch("/api/seasons").then((r) => r.json()).then((data) => {
       if (Array.isArray(data)) setSeasons(data);
     }).catch(() => {});
   }, []);
+
+  // Auto-switch: if API returned lifetime on initial search, redirect to most recent season tab
+  useEffect(() => {
+    if (!playerData || seasons.length === 0 || seasonLoading) return;
+    if (playerData.accountId !== lastAccountIdRef.current) {
+      lastAccountIdRef.current = playerData.accountId;
+      autoSwitchedRef.current = false;
+    }
+    if (!autoSwitchedRef.current && playerData.seasonId === "lifetime") {
+      autoSwitchedRef.current = true;
+      onSeasonChange(seasons[0].id);
+    }
+  }, [playerData, seasons, seasonLoading, onSeasonChange]);
 
   // Clear season error when new data arrives
   useEffect(() => { if (playerData) setSeasonError(null); }, [playerData]);
