@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPlayerById, getTeammatesFromMatches } from "@/lib/pubg";
+import { getPlayerById, getMatchHistory } from "@/lib/pubg";
 
 export async function GET(req: NextRequest) {
   const accountId = req.nextUrl.searchParams.get("accountId");
@@ -15,12 +15,10 @@ export async function GET(req: NextRequest) {
       (m: { id: string }) => m.id
     );
 
-    if (matchIds.length === 0) {
-      return NextResponse.json([]);
-    }
+    if (matchIds.length === 0) return NextResponse.json([]);
 
-    const teammates = await getTeammatesFromMatches(matchIds, accountId, shard, 5);
-    return NextResponse.json(teammates);
+    const matches = await getMatchHistory(matchIds, accountId, shard, 5);
+    return NextResponse.json(matches);
   } catch {
     return NextResponse.json([]);
   }

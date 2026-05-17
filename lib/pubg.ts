@@ -110,66 +110,129 @@ export async function getLifetimeStats(accountId: string, shard = "steam") {
   return await res.json();
 }
 
-async function fetchMatchTeammates(
+const MAP_NAMES: Record<string, string> = {
+  Baltic_Main: "에란겔",
+  Erangel_Main: "에란겔",
+  Desert_Main: "미라마",
+  Savage_Main: "사녹",
+  DihorOtok_Main: "비켄디",
+  Summerland_Main: "카라킨",
+  Tiger_Main: "태이고",
+  Kiki_Main: "데스턴",
+  Neon_Main: "론도",
+  Range_Main: "연습장",
+};
+
+const MODE_LABELS: Record<string, string> = {
+  squad: "스쿼드 3인칭",
+  "squad-fpp": "스쿼드 1인칭",
+  duo: "듀오 3인칭",
+  "duo-fpp": "듀오 1인칭",
+  solo: "솔로 3인칭",
+  "solo-fpp": "솔로 1인칭",
+};
+
+export interface MatchTeammate {
+  name: string;
+  accountId: string;
+  kills: number;
+  damage: number;
+}
+
+export interface MatchEntry {
+  matchId: string;
+  date: string;
+  map: string;
+  gameMode: string;
+  placement: number;
+  totalParticipants: number;
+  kills: number;
+  assists: number;
+  damage: number;
+  headshots: number;
+  survivalTime: number;
+  teammates: MatchTeammate[];
+}
+
+async function fetchMatchDetail(
   matchId: string,
   accountId: string,
   shard: string
-): Promise<{ name: string; accountId: string }[]> {
+): Promise<MatchEntry | null> {
   const res = await pubgFetch(`${BASE}/${shard}/matches/${matchId}`);
-  if (!res.ok) return [];
+  if (!res.ok) return null;
 
   const json = await res.json();
+  const data = json.data;
   const included: unknown[] = json.included ?? [];
 
-  const participants = included.filter((x: unknown) => (x as { type: string }).type === "participant") as Array<{
+  type RawParticipant = {
     id: string;
-    attributes: { stats: { playerId: string; name: string } };
-  }>;
-
-  const rosters = included.filter((x: unknown) => (x as { type: string }).type === "roster") as Array<{
+    type: string;
+    attributes: { stats: { playerId: string; name: string; kills: number; assists: number; damageDealt: number; headshotKills: number; timeSurvived: number; winPlace: number } };
+  };
+  type RawRoster = {
+    type: string;
+    attributes: { stats: { rank: number } };
     relationships: { participants: { data: { id: string }[] } };
-  }>;
+  };
 
-  const ourParticipant = participants.find((p) => p.attributes?.stats?.playerId === accountId);
-  if (!ourParticipant) return [];
+  const participants = included.filter((x) => (x as { type: string }).type === "participant") as RawParticipant[];
+  const rosters = included.filter((x) => (x as { type: string }).type === "roster") as RawRoster[];
 
-  const ourRoster = rosters.find((r) =>
-    r.relationships?.participants?.data?.some((p) => p.id === ourParticipant.id)
+  const me = participants.find((p) => p.attributes?.stats?.playerId === accountId);
+  if (!me) return null;
+
+  const myRoster = rosters.find((r) =>
+    r.relationships?.participants?.data?.some((p) => p.id === me.id)
   );
-  if (!ourRoster) return [];
 
-  return ourRoster.relationships.participants.data
-    .filter((p) => p.id !== ourParticipant.id)
-    .map((p) => participants.find((pt) => pt.id === p.id))
-    .filter((p): p is NonNullable<typeof p> => !!p)
-    .map((p) => ({ name: p.attributes.stats.name, accountId: p.attributes.stats.playerId }));
+  const teammates: MatchTeammate[] = myRoster
+    ? myRoster.relationships.participants.data
+        .filter((p) => p.id !== me.id)
+        .map((p) => participants.find((pt) => pt.id === p.id))
+        .filter((p): p is RawParticipant => !!p)
+        .map((p) => ({
+          name: p.attributes.stats.name,
+          accountId: p.attributes.stats.playerId,
+          kills: p.attributes.stats.kills,
+          damage: Math.round(p.attributes.stats.damageDealt),
+        }))
+    : [];
+
+  const s = me.attributes.stats;
+  const mapRaw = data?.attributes?.mapName ?? "";
+  const modeRaw = data?.attributes?.gameMode ?? "";
+
+  return {
+    matchId,
+    date: data?.attributes?.createdAt ?? "",
+    map: MAP_NAMES[mapRaw] ?? mapRaw,
+    gameMode: MODE_LABELS[modeRaw] ?? modeRaw,
+    placement: s.winPlace,
+    totalParticipants: participants.length,
+    kills: s.kills,
+    assists: s.assists,
+    damage: Math.round(s.damageDealt),
+    headshots: s.headshotKills,
+    survivalTime: s.timeSurvived,
+    teammates,
+  };
 }
 
-// Aggregates squadmates from up to maxMatches recent matches sequentially to avoid rate limits.
-export async function getTeammatesFromMatches(
+export async function getMatchHistory(
   matchIds: string[],
   accountId: string,
   shard = "steam",
   maxMatches = 5
-): Promise<{ name: string; accountId: string; sharedMatches: number }[]> {
+): Promise<MatchEntry[]> {
   const ids = matchIds.slice(0, maxMatches);
-  const counts = new Map<string, { name: string; accountId: string; count: number }>();
-
+  const results: MatchEntry[] = [];
   for (const id of ids) {
-    try {
-      const teammates = await fetchMatchTeammates(id, accountId, shard);
-      for (const t of teammates) {
-        const existing = counts.get(t.accountId);
-        if (existing) existing.count++;
-        else counts.set(t.accountId, { name: t.name, accountId: t.accountId, count: 1 });
-      }
-    } catch { /* skip failed match */ }
+    const entry = await fetchMatchDetail(id, accountId, shard);
+    if (entry) results.push(entry);
   }
-
-  return Array.from(counts.values())
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 6)
-    .map((t) => ({ name: t.name, accountId: t.accountId, sharedMatches: t.count }));
+  return results;
 }
 
 // Fetch a single player by account ID (used by teammates endpoint)

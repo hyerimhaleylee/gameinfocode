@@ -125,7 +125,6 @@ export async function GET(req: NextRequest) {
       modeKey,
       modeName,
       allModes,
-      teammates: [],
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "분석 중 오류가 발생했습니다.";

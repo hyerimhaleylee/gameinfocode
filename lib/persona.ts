@@ -86,7 +86,6 @@ export interface PlayerApiResponse {
   modeKey: string;
   modeName: string;
   allModes: ModeRow[];
-  teammates: { name: string; accountId: string; sharedMatches: number }[];
 }
 
 const MODE_META: Record<string, { label: string; team: string; perspective: string }> = {

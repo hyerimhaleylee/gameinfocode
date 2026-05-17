@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { PlayerApiResponse, ModeRow } from "@/lib/persona";
+import type { MatchEntry } from "@/lib/pubg";
 
 const AXES = ["Combat", "Survival", "Mobility", "Squadplay", "Consistency", "Adaptability"];
 
@@ -27,7 +28,7 @@ const FALLBACK: PlayerApiResponse = {
   seasonId: "", seasonLabel: "",
   accountId: "", shard: "",
   modeKey: "", modeName: "",
-  allModes: [], teammates: [],
+  allModes: [],
 };
 
 interface SeasonTab { id: string; label: string; isCurrentSeason: boolean; }
@@ -131,18 +132,88 @@ function ModeTable({ rows }: { rows: ModeRow[] }) {
   );
 }
 
+function formatDate(iso: string) {
+  const d = new Date(iso);
+  const diffMin = Math.floor((Date.now() - d.getTime()) / 60000);
+  if (diffMin < 60) return `${diffMin}분 전`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}시간 전`;
+  return `${Math.floor(diffHr / 24)}일 전`;
+}
+
+function formatSurvival(sec: number) {
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+function searchPlayer(name: string) {
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  window.dispatchEvent(new CustomEvent("gamecode:search", { detail: name }));
+}
+
+function MatchCard({ match, delay }: { match: MatchEntry; delay: number }) {
+  const pl = match.placement;
+  const placementColor = pl === 1 ? "#facc15" : pl <= 5 ? "#4ade80" : pl <= 15 ? "#94a3b8" : "#475569";
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}
+      className="border border-white/8 rounded-sm overflow-hidden"
+      style={{ background: "rgba(10,18,40,0.7)" }}>
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/5"
+        style={{ background: "rgba(255,255,255,0.02)" }}>
+        <div className="flex items-center gap-3">
+          <span className="text-xl font-bold font-mono leading-none" style={{ color: placementColor }}>
+            #{pl}
+          </span>
+          <div>
+            <span className="text-sm text-white font-medium">{match.map}</span>
+            <span className="text-[10px] font-mono text-slate-500 ml-2">{match.gameMode}</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 text-[10px] font-mono text-slate-600">
+          <span>/{match.totalParticipants}명</span>
+          <span>{formatDate(match.date)}</span>
+        </div>
+      </div>
+
+      <div className="px-4 py-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-mono border-b border-white/5">
+        <span className="text-slate-300">킬 <span className="text-blue-300 font-bold">{match.kills}</span></span>
+        <span className="text-slate-500">어시 {match.assists}</span>
+        <span className="text-slate-300">딜 <span className="text-amber-300 font-semibold">{match.damage}</span></span>
+        {match.headshots > 0 && (
+          <span className="text-slate-500">헤드샷 {match.headshots}</span>
+        )}
+        <span className="text-slate-600">{formatSurvival(match.survivalTime)}</span>
+      </div>
+
+      {match.teammates.length > 0 && (
+        <div className="px-4 py-2.5 flex flex-wrap gap-1.5">
+          {match.teammates.map((tm) => (
+            <button key={tm.accountId} onClick={() => searchPlayer(tm.name)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-sm border border-white/8 hover:border-blue-400/30 hover:bg-blue-500/8 transition-all group text-[11px] font-mono">
+              <span className="text-slate-300 group-hover:text-white transition-colors">{tm.name}</span>
+              <span className="text-slate-600 text-[9px]">{tm.kills}킬 {tm.damage}딜</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
 interface Props {
   playerName: string;
   playerData: PlayerApiResponse | null;
   fetchError: string | null;
   seasonLoading: boolean;
-  teammates: PlayerApiResponse["teammates"];
-  teammatesLoading: boolean;
+  matches: MatchEntry[];
+  matchesLoading: boolean;
   onReset: () => void;
   onSeasonChange: (seasonId: string) => void;
 }
 
-export default function ResultSection({ playerName, playerData, fetchError, seasonLoading, teammates, teammatesLoading, onReset, onSeasonChange }: Props) {
+export default function ResultSection({ playerName, playerData, fetchError, seasonLoading, matches, matchesLoading, onReset, onSeasonChange }: Props) {
   const [seasons, setSeasons] = useState<SeasonTab[]>([]);
   const [seasonError, setSeasonError] = useState<string | null>(null);
 
@@ -159,6 +230,18 @@ export default function ResultSection({ playerName, playerData, fetchError, seas
   const d = playerData ?? FALLBACK;
   const tierColor = TIER_COLOR[d.persona.tier] ?? "#94a3b8";
   const hasInitialError = !playerData && !!fetchError;
+
+  const frequentTeammates = useMemo(() => {
+    const counts = new Map<string, { name: string; accountId: string; count: number }>();
+    for (const m of matches) {
+      for (const t of m.teammates) {
+        const ex = counts.get(t.accountId);
+        if (ex) ex.count++;
+        else counts.set(t.accountId, { name: t.name, accountId: t.accountId, count: 1 });
+      }
+    }
+    return Array.from(counts.values()).sort((a, b) => b.count - a.count).slice(0, 8);
+  }, [matches]);
 
   const allTabs: SeasonTab[] = [
     { id: "lifetime", label: "전체", isCurrentSeason: false },
@@ -403,36 +486,42 @@ export default function ResultSection({ playerName, playerData, fetchError, seas
           </motion.div>
         )}
 
-        {/* ─── TEAMMATES ─── */}
-        {(teammatesLoading || teammates.length > 0) && (
+        {/* ─── MATCH HISTORY ─── */}
+        {(matchesLoading || matches.length > 0) && (
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 2.0 }}
-            className="border border-white/8 rounded-sm mb-5 p-5"
+            className="border border-white/8 rounded-sm mb-5 overflow-hidden"
             style={{ background: "rgba(10,15,30,0.9)" }}>
-            <p className="text-[10px] font-mono text-slate-500 tracking-[0.2em] mb-3">// 최근 20경기 기준 함께 플레이한 팀원</p>
-            {teammatesLoading && teammates.length === 0 ? (
-              <div className="flex items-center gap-2 text-[11px] font-mono text-slate-600 animate-pulse">
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-400/40 animate-ping" />
-                팀원 정보 불러오는 중...
-              </div>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {teammates.map((tm) => (
-                  <button key={tm.accountId}
-                    onClick={() => {
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                      window.dispatchEvent(new CustomEvent("gamecode:search", { detail: tm.name }));
-                    }}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-sm border border-white/10 hover:border-blue-400/30 hover:bg-blue-500/8 transition-all group">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400/50 group-hover:bg-blue-400 transition-colors" />
-                    <span className="text-sm text-slate-300 group-hover:text-white transition-colors font-mono">{tm.name}</span>
-                    {tm.sharedMatches > 1 && (
-                      <span className="text-[9px] font-mono text-blue-400/50 group-hover:text-blue-400/70 transition-colors">
-                        {tm.sharedMatches}경기
-                      </span>
-                    )}
-                    <span className="text-[10px] text-slate-600 group-hover:text-blue-400/60 transition-colors">→</span>
-                  </button>
-                ))}
+            <div className="px-5 py-3 border-b border-white/6 flex items-center gap-2">
+              <span className="text-[10px] font-mono text-slate-500 tracking-[0.2em]">// 최근 경기</span>
+              {matchesLoading && (
+                <span className="flex items-center gap-1.5 text-[10px] font-mono text-blue-400/50 animate-pulse ml-2">
+                  <span className="w-1 h-1 rounded-full bg-blue-400/50 animate-ping" />
+                  불러오는 중...
+                </span>
+              )}
+            </div>
+            <div className="p-3 flex flex-col gap-2">
+              {matches.map((m, i) => (
+                <MatchCard key={m.matchId} match={m} delay={0.05 * i} />
+              ))}
+            </div>
+
+            {/* Frequent teammates aggregated from match history */}
+            {frequentTeammates.length > 0 && (
+              <div className="px-5 py-3 border-t border-white/6">
+                <p className="text-[10px] font-mono text-slate-600 tracking-[0.2em] mb-2.5">// 자주 함께한 플레이어</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {frequentTeammates.map((tm) => (
+                    <button key={tm.accountId} onClick={() => searchPlayer(tm.name)}
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-sm border border-white/10 hover:border-blue-400/30 hover:bg-blue-500/8 transition-all group text-[11px] font-mono">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-400/40 group-hover:bg-blue-400 transition-colors" />
+                      <span className="text-slate-300 group-hover:text-white transition-colors">{tm.name}</span>
+                      {tm.count > 1 && (
+                        <span className="text-[9px] text-blue-400/40 group-hover:text-blue-400/70 transition-colors">{tm.count}경기</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </motion.div>

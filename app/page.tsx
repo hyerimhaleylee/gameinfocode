@@ -11,6 +11,7 @@ import Footer from "@/components/Footer";
 import AnalysisOverlay from "@/components/AnalysisOverlay";
 import ResultSection from "@/components/ResultSection";
 import type { PlayerApiResponse } from "@/lib/persona";
+import type { MatchEntry } from "@/lib/pubg";
 
 type Phase = "landing" | "scanning" | "result";
 
@@ -20,8 +21,8 @@ export default function Home() {
   const [playerData, setPlayerData] = useState<PlayerApiResponse | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [seasonLoading, setSeasonLoading] = useState(false);
-  const [teammates, setTeammates] = useState<PlayerApiResponse["teammates"]>([]);
-  const [teammatesLoading, setTeammatesLoading] = useState(false);
+  const [matches, setMatches] = useState<MatchEntry[]>([]);
+  const [matchesLoading, setMatchesLoading] = useState(false);
 
   const accountRef = useRef<{ accountId: string; shard: string } | null>(null);
   const fetchPromiseRef = useRef<Promise<PlayerApiResponse | null>>(Promise.resolve(null));
@@ -34,18 +35,16 @@ export default function Home() {
     return `/api/player?${params}`;
   };
 
-  const fetchTeammates = useCallback(async (accountId: string, shard: string) => {
-    setTeammatesLoading(true);
+  const fetchMatches = useCallback(async (accountId: string, shard: string) => {
+    setMatchesLoading(true);
     try {
-      const res = await fetch(`/api/teammates?accountId=${encodeURIComponent(accountId)}&shard=${encodeURIComponent(shard)}`);
+      const res = await fetch(`/api/matches?accountId=${encodeURIComponent(accountId)}&shard=${encodeURIComponent(shard)}`);
       const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        setTeammates(data);
-      }
+      if (Array.isArray(data) && data.length > 0) setMatches(data);
     } catch {
       // non-critical
     } finally {
-      setTeammatesLoading(false);
+      setMatchesLoading(false);
     }
   }, []);
 
@@ -54,7 +53,7 @@ export default function Home() {
     setPhase("scanning");
     setPlayerData(null);
     setFetchError(null);
-    setTeammates([]);
+    setMatches([]);
     accountRef.current = null;
 
     fetchPromiseRef.current = fetch(buildUrl(name))
@@ -75,12 +74,11 @@ export default function Home() {
     if (data) {
       setPlayerData(data);
       accountRef.current = { accountId: data.accountId, shard: data.shard };
-      // Fetch teammates separately (non-blocking, appears after main result)
-      fetchTeammates(data.accountId, data.shard);
+      fetchMatches(data.accountId, data.shard);
     }
     setPhase("result");
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [fetchTeammates]);
+  }, [fetchMatches]);
 
   const handleSeasonChange = useCallback(async (seasonId: string) => {
     if (!playerName) return;
@@ -121,7 +119,7 @@ export default function Home() {
     setPlayerName("");
     setPlayerData(null);
     setFetchError(null);
-    setTeammates([]);
+    setMatches([]);
     accountRef.current = null;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
@@ -144,8 +142,8 @@ export default function Home() {
             playerData={playerData}
             fetchError={fetchError}
             seasonLoading={seasonLoading}
-            teammates={teammates}
-            teammatesLoading={teammatesLoading}
+            matches={matches}
+            matchesLoading={matchesLoading}
             onReset={handleReset}
             onSeasonChange={handleSeasonChange}
           />
