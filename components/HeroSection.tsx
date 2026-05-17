@@ -62,9 +62,44 @@ function BackgroundRadar({ size = 420 }: { size?: number }) {
   );
 }
 
+const HISTORY_KEY = "gameinfocode:history";
+const MAX_HISTORY = 6;
+
+function useSearchHistory() {
+  const [history, setHistory] = useState<string[]>([]);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(HISTORY_KEY);
+      if (stored) setHistory(JSON.parse(stored));
+    } catch {}
+  }, []);
+
+  const add = (name: string) => {
+    setHistory((prev) => {
+      const filtered = prev.filter((h) => h.toLowerCase() !== name.toLowerCase());
+      const updated = [name, ...filtered].slice(0, MAX_HISTORY);
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const remove = (name: string) => {
+    setHistory((prev) => {
+      const updated = prev.filter((h) => h !== name);
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  return { history, add, remove };
+}
+
 export default function HeroSection({ onSearch }: Props) {
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const { history, add: addHistory, remove: removeHistory } = useSearchHistory();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animRef = useRef<number>(0);
 
@@ -117,7 +152,22 @@ export default function HeroSection({ onSearch }: Props) {
 
   const handleSubmit = () => {
     if (!query.trim()) return;
+    addHistory(query.trim());
+    setShowHistory(false);
     onSearch(query.trim());
+  };
+
+  const handleHistorySelect = (name: string) => {
+    setQuery(name);
+    addHistory(name);
+    setShowHistory(false);
+    onSearch(name);
+  };
+
+  const handleHistoryRemove = (name: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    removeHistory(name);
   };
 
   return (
@@ -239,9 +289,12 @@ export default function HeroSection({ onSearch }: Props) {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-                onFocus={() => setFocused(true)}
-                onBlur={() => setFocused(false)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSubmit();
+                  if (e.key === "Escape") setShowHistory(false);
+                }}
+                onFocus={() => { setFocused(true); if (history.length > 0) setShowHistory(true); }}
+                onBlur={() => { setFocused(false); setTimeout(() => setShowHistory(false), 150); }}
                 placeholder="Enter callsign…"
                 className="flex-1 px-4 py-4 bg-transparent font-mono text-white text-sm tracking-widest placeholder-slate-700 focus:outline-none"
               />
@@ -271,6 +324,36 @@ export default function HeroSection({ onSearch }: Props) {
               </button>
             </div>
           </div>
+
+          {/* History dropdown */}
+          {showHistory && history.length > 0 && (
+            <div
+              className="mt-px border border-cyan-500/15 overflow-hidden"
+              style={{ background: "rgba(2,8,18,0.97)" }}
+            >
+              <p className="px-4 py-1.5 text-[9px] font-mono text-slate-700 tracking-[0.2em] border-b border-white/5">
+                RECENT
+              </p>
+              {history.map((name) => (
+                <div
+                  key={name}
+                  onMouseDown={() => handleHistorySelect(name)}
+                  className="flex items-center gap-3 px-4 py-2.5 hover:bg-cyan-500/6 cursor-pointer group border-b border-white/4 last:border-0"
+                >
+                  <span className="text-slate-600 text-xs font-mono">↺</span>
+                  <span className="flex-1 text-sm font-mono text-slate-300 group-hover:text-white tracking-widest transition-colors">
+                    {name}
+                  </span>
+                  <button
+                    onMouseDown={(e) => handleHistoryRemove(name, e)}
+                    className="text-slate-700 hover:text-slate-400 text-xs transition-colors px-1"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Hint */}
           <p className="text-[10px] font-mono text-slate-700 mt-2 text-right tracking-widest">

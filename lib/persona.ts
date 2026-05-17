@@ -63,9 +63,28 @@ export interface Persona {
   tier: string;
 }
 
+export interface RankedTier {
+  tier: string;
+  subTier: string;
+}
+
 export interface Insight {
   type: "positive" | "warning" | "neutral";
   text: string;
+}
+
+export interface RankedModeRow {
+  key: string;
+  team: string;
+  perspective: string;
+  gamesStr: string;
+  kdStr: string;
+  winRateStr: string;
+  avgDamageStr: string;
+  currentTier: string;
+  currentRP: number;
+  bestTier: string;
+  bestRP: number;
 }
 
 export interface PlayerApiResponse {
@@ -86,6 +105,8 @@ export interface PlayerApiResponse {
   modeKey: string;
   modeName: string;
   allModes: ModeRow[];
+  rankedModes?: RankedModeRow[];
+  rankedTier?: RankedTier | null;
 }
 
 const MODE_META: Record<string, { label: string; team: string; perspective: string }> = {
@@ -320,6 +341,47 @@ export function generateRecommendation(s: ProcessedStats): string {
   if (s.avgDamage >= 300)
     return "교전 능력이 우수합니다. 자기장 후반 운영 판단력을 높이면 승률이 크게 올라갈 것입니다.";
   return "꾸준한 플레이가 실력 향상의 핵심입니다. 교전 후 복기를 통해 패턴을 파악하고 개선해나가세요.";
+}
+
+interface RawRankedMode {
+  roundsPlayed: number;
+  wins: number;
+  kills: number;
+  losses: number;
+  damageDealt: number;
+  currentTier: { tier: string; subTier: string };
+  currentRankPoint: number;
+  bestTier: { tier: string; subTier: string };
+  bestRankPoint: number;
+}
+
+export function getAllRankedModeRows(
+  rankedStats: Record<string, unknown>
+): RankedModeRow[] {
+  const tierStr = (t: { tier: string; subTier: string }) =>
+    t.tier === "Unranked" ? "Unranked" : `${t.tier} ${t.subTier}`;
+
+  return MODE_ORDER
+    .filter((key) => ((rankedStats[key] as RawRankedMode)?.roundsPlayed ?? 0) > 0)
+    .map((key) => {
+      const m = rankedStats[key] as RawRankedMode;
+      const meta = MODE_META[key] ?? { team: key, perspective: "-" };
+      const deaths = Math.max(m.losses, 1);
+      const games = Math.max(m.roundsPlayed, 1);
+      return {
+        key,
+        team: meta.team,
+        perspective: meta.perspective,
+        gamesStr: m.roundsPlayed.toLocaleString(),
+        kdStr: (m.kills / deaths).toFixed(2),
+        winRateStr: ((m.wins / games) * 100).toFixed(1) + "%",
+        avgDamageStr: Math.round(m.damageDealt / games).toString(),
+        currentTier: tierStr(m.currentTier),
+        currentRP: m.currentRankPoint,
+        bestTier: tierStr(m.bestTier),
+        bestRP: m.bestRankPoint,
+      };
+    });
 }
 
 export function calculateRadarValues(s: ProcessedStats): number[] {

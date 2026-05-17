@@ -235,6 +235,24 @@ export async function getMatchHistory(
   return results;
 }
 
+export async function getRankedSeasonStats(
+  accountId: string,
+  seasonId: string,
+  shard = "steam"
+): Promise<Record<string, unknown> | null> {
+  try {
+    const res = await pubgFetch(
+      `${BASE}/${shard}/players/${accountId}/seasons/${seasonId}/ranked`,
+      { next: { revalidate: 300 } } as RequestInit
+    );
+    if (!res.ok) return null;
+    const json = await res.json();
+    return (json.data?.attributes?.rankedGameModeStats ?? null) as Record<string, unknown> | null;
+  } catch {
+    return null;
+  }
+}
+
 // Fetch a single player by account ID (used by teammates endpoint)
 export async function getPlayerById(accountId: string, shard = "steam") {
   const res = await pubgFetch(`${BASE}/${shard}/players/${accountId}`);

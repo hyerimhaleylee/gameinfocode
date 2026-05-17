@@ -2,18 +2,10 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import type { PlayerApiResponse, ModeRow } from "@/lib/persona";
+import type { PlayerApiResponse, ModeRow, RankedModeRow } from "@/lib/persona";
 import type { MatchEntry } from "@/lib/pubg";
 
 const AXES = ["Combat", "Survival", "Mobility", "Squadplay", "Consistency", "Adaptability"];
-
-const TIER_COLOR: Record<string, string> = {
-  DIAMOND: "#60a5fa",
-  PLATINUM: "#00f5ff",
-  GOLD: "#facc15",
-  SILVER: "#94a3b8",
-  BRONZE: "#cd7f32",
-};
 
 const FALLBACK: PlayerApiResponse = {
   name: "Unknown_Player",
@@ -132,6 +124,59 @@ function ModeTable({ rows }: { rows: ModeRow[] }) {
   );
 }
 
+const RANKED_TIER_COLOR: Record<string, string> = {
+  Unranked: "#475569",
+  Bronze: "#cd7f32",
+  Silver: "#94a3b8",
+  Gold: "#facc15",
+  Platinum: "#00f5ff",
+  Diamond: "#60a5fa",
+  Master: "#a855f7",
+};
+
+function getTierColor(tierStr: string) {
+  const base = tierStr.split(" ")[0];
+  return RANKED_TIER_COLOR[base] ?? "#94a3b8";
+}
+
+function RankedTable({ rows }: { rows: RankedModeRow[] }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-xs font-mono">
+        <thead>
+          <tr className="border-b border-white/8">
+            {["팀구성", "시점", "게임 수", "현재 티어", "RP", "최고 티어", "K/D", "승률", "평균딜"].map((h) => (
+              <th key={h} className="py-2 px-3 text-left text-slate-500 tracking-wider font-normal">{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => {
+            const tierColor = getTierColor(row.currentTier);
+            return (
+              <motion.tr key={row.key} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.05 * i }}
+                className="border-b border-white/5 hover:bg-white/3 transition-colors">
+                <td className="py-2.5 px-3 text-slate-200 font-medium">{row.team}</td>
+                <td className="py-2.5 px-3 text-blue-300/70">{row.perspective}</td>
+                <td className="py-2.5 px-3 text-slate-300">{row.gamesStr}</td>
+                <td className="py-2.5 px-3 font-semibold" style={{ color: tierColor, textShadow: `0 0 10px ${tierColor}60` }}>
+                  {row.currentTier}
+                </td>
+                <td className="py-2.5 px-3 text-slate-300">{row.currentRP.toLocaleString()}</td>
+                <td className="py-2.5 px-3 text-slate-500">{row.bestTier}</td>
+                <td className="py-2.5 px-3 text-blue-300 font-semibold">{row.kdStr}</td>
+                <td className="py-2.5 px-3 text-emerald-400">{row.winRateStr}</td>
+                <td className="py-2.5 px-3 text-slate-300">{row.avgDamageStr}</td>
+              </motion.tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function formatDate(iso: string) {
   const d = new Date(iso);
   const diffMin = Math.floor((Date.now() - d.getTime()) / 60000);
@@ -228,7 +273,8 @@ export default function ResultSection({ playerName, playerData, fetchError, seas
   useEffect(() => { if (fetchError) setSeasonError(fetchError); }, [fetchError]);
 
   const d = playerData ?? FALLBACK;
-  const tierColor = TIER_COLOR[d.persona.tier] ?? "#94a3b8";
+  const rankedTierData = d.rankedTier ?? null;
+  const rankedColor = rankedTierData ? getTierColor(rankedTierData.tier) : null;
   const hasInitialError = !playerData && !!fetchError;
 
   const frequentTeammates = useMemo(() => {
@@ -395,13 +441,24 @@ export default function ResultSection({ playerName, playerData, fetchError, seas
 
                   {/* Right: stats */}
                   <div className="md:w-52 flex flex-col gap-3">
-                    <div className="text-center p-3.5 rounded-sm border"
-                      style={{ borderColor: `${tierColor}35`, background: `${tierColor}07` }}>
-                      <p className="text-[9px] font-mono text-slate-600 tracking-widest mb-0.5">TIER</p>
-                      <p className="text-xl font-bold" style={{ color: tierColor, textShadow: `0 0 14px ${tierColor}50` }}>
-                        {d.persona.tier}
-                      </p>
-                    </div>
+                    {rankedTierData && rankedColor ? (
+                      <div className="text-center p-3.5 rounded-sm border"
+                        style={{ borderColor: `${rankedColor}35`, background: `${rankedColor}07` }}>
+                        <p className="text-[9px] font-mono text-slate-600 tracking-widest mb-0.5">RANKED TIER</p>
+                        <p className="text-xl font-bold leading-tight" style={{ color: rankedColor, textShadow: `0 0 14px ${rankedColor}50` }}>
+                          {rankedTierData.tier}
+                        </p>
+                        <p className="text-[10px] font-mono" style={{ color: `${rankedColor}99` }}>
+                          {rankedTierData.subTier}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="text-center p-3.5 rounded-sm border border-white/8"
+                        style={{ background: "rgba(255,255,255,0.02)" }}>
+                        <p className="text-[9px] font-mono text-slate-600 tracking-widest mb-0.5">RANKED TIER</p>
+                        <p className="text-sm font-mono text-slate-600">미배치</p>
+                      </div>
+                    )}
 
                     <div className="grid grid-cols-2 gap-2">
                       {[
@@ -483,6 +540,31 @@ export default function ResultSection({ playerName, playerData, fetchError, seas
             <div className="p-2">
               <ModeTable rows={d.allModes} />
             </div>
+          </motion.div>
+        )}
+
+        {/* ─── RANKED STATS ─── */}
+        {d.rankedModes && d.rankedModes.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.9 }}
+            className="border border-amber-500/15 rounded-sm mb-5 overflow-hidden"
+            style={{ background: "rgba(10,15,30,0.9)" }}>
+            <div className="px-5 py-3 border-b border-amber-500/10 flex items-center gap-2">
+              <span className="text-[10px] font-mono text-amber-400/60 tracking-[0.2em]">// 랭크드 스탯</span>
+              <span className="text-[9px] font-mono text-slate-700 ml-auto">일반전과 별도 집계</span>
+            </div>
+            <div className="p-2">
+              <RankedTable rows={d.rankedModes} />
+            </div>
+          </motion.div>
+        )}
+
+        {/* Season hint when no ranked data and viewing specific season */}
+        {!d.rankedModes && d.seasonId && d.seasonId !== "lifetime" && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.9 }}
+            className="mb-5 px-4 py-3 border border-white/5 rounded-sm flex items-center gap-2"
+            style={{ background: "rgba(255,255,255,0.02)" }}>
+            <span className="text-slate-600 text-[10px] font-mono tracking-wider">// 랭크드</span>
+            <span className="text-slate-600 text-[10px] font-mono">해당 시즌에 랭크드 기록이 없습니다.</span>
           </motion.div>
         )}
 
