@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json([]);
     }
 
-    const teammates = await getTeammatesFromMatches(matchIds, accountId, shard, 20);
+    const teammates = await getTeammatesFromMatches(matchIds, accountId, shard, 5);
     return NextResponse.json(teammates);
   } catch {
     return NextResponse.json([]);

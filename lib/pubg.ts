@@ -33,6 +33,23 @@ export async function findPlayer(name: string, shard = "steam") {
   return json.data[0]; // includes relationships.matches.data
 }
 
+// Query multiple name variants in a single API call (PUBG supports comma-separated playerNames)
+export async function findPlayerBulk(names: string[], shard = "steam") {
+  const unique = [...new Set(names)];
+  const res = await pubgFetch(
+    `${BASE}/${shard}/players?filter[playerNames]=${encodeURIComponent(unique.join(","))}`,
+    { next: { revalidate: 60 } } as RequestInit
+  );
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    if (res.status === 404 || json?.errors?.[0]?.title === "Not Found") throw new Error("NOT_FOUND");
+    throw new Error(`PUBG API 오류 (${res.status})`);
+  }
+  const json = await res.json();
+  if (!json.data?.length) throw new Error("NOT_FOUND");
+  return json.data[0];
+}
+
 export async function getSeasonsList(shard = "steam") {
   const res = await pubgFetch(`${BASE}/${shard}/seasons`, {
     next: { revalidate: 3600 },
@@ -108,27 +125,25 @@ async function fetchMatchTeammates(
     .map((p) => ({ name: p.attributes.stats.name, accountId: p.attributes.stats.playerId }));
 }
 
-// Aggregates squadmates from up to maxMatches recent matches in parallel, sorted by shared game count.
+// Aggregates squadmates from up to maxMatches recent matches sequentially to avoid rate limits.
 export async function getTeammatesFromMatches(
   matchIds: string[],
   accountId: string,
   shard = "steam",
-  maxMatches = 20
+  maxMatches = 5
 ): Promise<{ name: string; accountId: string; sharedMatches: number }[]> {
   const ids = matchIds.slice(0, maxMatches);
   const counts = new Map<string, { name: string; accountId: string; count: number }>();
 
-  const results = await Promise.allSettled(
-    ids.map((id) => fetchMatchTeammates(id, accountId, shard))
-  );
-
-  for (const result of results) {
-    if (result.status !== "fulfilled") continue;
-    for (const t of result.value) {
-      const existing = counts.get(t.accountId);
-      if (existing) existing.count++;
-      else counts.set(t.accountId, { name: t.name, accountId: t.accountId, count: 1 });
-    }
+  for (const id of ids) {
+    try {
+      const teammates = await fetchMatchTeammates(id, accountId, shard);
+      for (const t of teammates) {
+        const existing = counts.get(t.accountId);
+        if (existing) existing.count++;
+        else counts.set(t.accountId, { name: t.name, accountId: t.accountId, count: 1 });
+      }
+    } catch { /* skip failed match */ }
   }
 
   return Array.from(counts.values())

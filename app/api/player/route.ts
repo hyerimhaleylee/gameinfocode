@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { findPlayer, getSeasonStats, getLifetimeStats } from "@/lib/pubg";
+import { findPlayerBulk, getSeasonStats, getLifetimeStats } from "@/lib/pubg";
 import {
   extractBestModeStats,
   getAllModeRows,
@@ -12,27 +12,19 @@ import {
 } from "@/lib/persona";
 import type { RawModeStats } from "@/lib/persona";
 
-// Try multiple case variants: exact, ALL UPPER, all lower, First Upper rest lower
+// Build case variants and query all at once in a single API call per shard
 function caseVariants(name: string): string[] {
-  const titleCase = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
-  return [...new Set([name, name.toUpperCase(), name.toLowerCase(), titleCase])];
+  const title = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+  return [...new Set([name, name.toUpperCase(), name.toLowerCase(), title])];
 }
 
 async function resolvePlayer(name: string) {
   const variants = caseVariants(name);
 
-  for (const variant of variants) {
+  for (const shard of ["steam", "kakao"] as const) {
     try {
-      const player = await findPlayer(variant, "steam");
-      return { player, shard: "steam" };
-    } catch (e) {
-      if (e instanceof Error && e.message !== "NOT_FOUND") throw e;
-    }
-  }
-  for (const variant of variants) {
-    try {
-      const player = await findPlayer(variant, "kakao");
-      return { player, shard: "kakao" };
+      const player = await findPlayerBulk(variants, shard);
+      return { player, shard };
     } catch (e) {
       if (e instanceof Error && e.message !== "NOT_FOUND") throw e;
     }
