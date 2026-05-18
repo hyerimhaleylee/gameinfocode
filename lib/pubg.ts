@@ -430,8 +430,47 @@ async function fetchKillWeapons(telemetryUrl: string, accountId: string): Promis
   }
 }
 
+export async function getWeaponMastery(accountId: string, shard = "steam"): Promise<WeaponStats> {
+  const res = await pubgFetch(
+    `${BASE}/${shard}/players/${accountId}/weapon_mastery`,
+    { next: { revalidate: 3600 } } as RequestInit
+  );
+  if (!res.ok) throw new Error(`Weapon Mastery 조회 오류 (${res.status})`);
+  const json = await res.json();
+
+  const weaponsInfo = (json.data?.attributes?.weaponsInfo ?? {}) as Record<
+    string,
+    { statsTotal?: { kills?: number } }
+  >;
+
+  const byCategory: Record<string, number> = { AR: 0, SMG: 0, DMR: 0, SR: 0, Throwable: 0, 기타: 0 };
+  const weaponCounts = new Map<string, number>();
+
+  for (const [weaponId, data] of Object.entries(weaponsInfo)) {
+    const kills = data.statsTotal?.kills ?? 0;
+    if (kills === 0) continue;
+    const internal = extractInternalName(weaponId);
+    const cat = categorizeWeapon(internal);
+    byCategory[cat] = (byCategory[cat] ?? 0) + kills;
+    weaponCounts.set(internal, (weaponCounts.get(internal) ?? 0) + kills);
+  }
+
+  const totalTracked = Object.values(byCategory).reduce((a, b) => a + b, 0);
+  const topWeapons: WeaponKillEntry[] = Array.from(weaponCounts.entries())
+    .map(([internal, kills]) => ({
+      internalName: internal,
+      displayName: WEAPON_DISPLAY_MAP[internal] ?? internal,
+      category: categorizeWeapon(internal),
+      kills,
+    }))
+    .sort((a, b) => b.kills - a.kills)
+    .slice(0, 10);
+
+  return { byCategory, topWeapons, totalTracked, matchesAnalyzed: -1 };
+}
+
 export async function getWeaponStats(accountId: string, shard = "steam"): Promise<WeaponStats> {
-  const MAX_MATCHES = 3;
+  const MAX_MATCHES = 10;
 
   const player = await getPlayerById(accountId, shard);
   const matchIds: string[] = (player.relationships?.matches?.data ?? [])
