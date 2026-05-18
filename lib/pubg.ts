@@ -256,6 +256,77 @@ export async function getRankedSeasonStats(
   }
 }
 
+export interface LeaderboardEntry {
+  rank: number;
+  accountId: string;
+  name: string;
+  rankPoint: number;
+  wins: number;
+  games: number;
+  winRatio: number;
+  averageDamage: number;
+  kills: number;
+  killDeathRatio: number;
+  kda: number;
+  averageRank: number;
+}
+
+export async function getLeaderboard(
+  seasonId: string,
+  gameMode: string,
+  shard = "steam"
+): Promise<LeaderboardEntry[]> {
+  const res = await pubgFetch(
+    `${BASE}/${shard}/leaderboards/${seasonId}/${gameMode}`,
+    { next: { revalidate: 3600 } } as RequestInit
+  );
+  if (!res.ok) throw new Error(`리더보드 조회 오류 (${res.status})`);
+  const json = await res.json();
+
+  type RawPlayer = {
+    type: string;
+    id: string;
+    attributes: {
+      name: string;
+      rank: number;
+      stats: {
+        rankPoint?: number;
+        wins?: number;
+        games?: number;
+        winRatio?: number;
+        averageDamage?: number;
+        kills?: number;
+        killDeathRatio?: number;
+        kda?: number;
+        averageRank?: number;
+      };
+    };
+  };
+
+  const included = (json.included ?? []) as RawPlayer[];
+  return included
+    .filter((p) => p.type === "player")
+    .sort((a, b) => a.attributes.rank - b.attributes.rank)
+    .slice(0, 100)
+    .map((p) => {
+      const s = p.attributes.stats;
+      return {
+        rank: p.attributes.rank,
+        accountId: p.id,
+        name: p.attributes.name,
+        rankPoint: s.rankPoint ?? 0,
+        wins: s.wins ?? 0,
+        games: s.games ?? 0,
+        winRatio: s.winRatio ?? 0,
+        averageDamage: s.averageDamage ?? 0,
+        kills: s.kills ?? 0,
+        killDeathRatio: s.killDeathRatio ?? 0,
+        kda: s.kda ?? 0,
+        averageRank: s.averageRank ?? 0,
+      };
+    });
+}
+
 // Fetch a single player by account ID (used by teammates endpoint)
 export async function getPlayerById(accountId: string, shard = "steam") {
   const res = await pubgFetch(`${BASE}/${shard}/players/${accountId}`);

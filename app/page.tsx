@@ -114,6 +114,15 @@ export default function Home() {
     return () => window.removeEventListener("gamecode:search", handler);
   }, [handleSearch]);
 
+  // Auto-search from leaderboard link (?q=PlayerName)
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("q");
+    if (q) {
+      window.history.replaceState({}, "", "/");
+      handleSearch(q);
+    }
+  }, [handleSearch]);
+
   const handleReset = useCallback(() => {
     setPhase("landing");
     setPlayerName("");
