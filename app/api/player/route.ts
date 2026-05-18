@@ -203,6 +203,7 @@ export async function GET(req: NextRequest) {
       avgDamage: stats.avgDamageStr,
       headshot: stats.headshotStr,
       assistsPerGame: stats.assistsPerGame.toFixed(1),
+      revivesPerGame: stats.revivesPerGame.toFixed(2),
       games: stats.gamesStr,
       persona,
       radarValues,

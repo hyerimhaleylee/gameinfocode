@@ -10,7 +10,7 @@ const AXES = ["Combat", "Survival", "Mobility", "Squadplay", "Consistency", "Ada
 
 const FALLBACK: PlayerApiResponse = {
   name: "Unknown_Player",
-  kd: "—", kda: "—", winRate: "—", avgDamage: "—", headshot: "—", assistsPerGame: "—", games: "—",
+  kd: "—", kda: "—", winRate: "—", avgDamage: "—", headshot: "—", assistsPerGame: "—", revivesPerGame: "—", games: "—",
   persona: {
     id: "rookie", title: "4렙 가방", titleEn: "LVL4 BACKPACK",
     quote: "아직 가방만 레벨4다. 하지만 시작했다.",
@@ -532,6 +532,7 @@ export default function ResultSection({ playerName, playerData, fetchError, seas
                         { label: "AVG DMG", value: d.avgDamage },
                         { label: "HS%", value: d.headshot },
                         { label: "ASSISTS/G", value: d.assistsPerGame },
+                        { label: "REVIVES/G", value: d.revivesPerGame },
                       ].map((s) => (
                         <div key={s.label} className="p-2.5 rounded-sm border border-white/6 text-center"
                           style={{ background: "rgba(255,255,255,0.025)" }}>

@@ -100,6 +100,7 @@ export interface PlayerApiResponse {
   avgDamage: string;
   headshot: string;
   assistsPerGame: string;
+  revivesPerGame: string;
   games: string;
   persona: Persona;
   radarValues: number[];
