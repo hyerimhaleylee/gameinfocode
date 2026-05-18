@@ -92,6 +92,12 @@ export interface RankedModeRow {
   bestRP: number;
 }
 
+export interface WeaponRatio {
+  nearPct: number;
+  farPct: number;
+  totalTracked: number;
+}
+
 export interface PlayerApiResponse {
   name: string;
   kd: string;
@@ -103,6 +109,7 @@ export interface PlayerApiResponse {
   revivesPerGame: string;
   games: string;
   persona: Persona;
+  weaponRatio?: WeaponRatio | null;
   radarValues: number[];
   insights: Insight[];
   recommendation: string;
@@ -232,8 +239,9 @@ const PERSONA_DEFS: Array<{
   quote: string;
   type: string;
   tier: string;
-  match: (s: ProcessedStats) => boolean;
+  match: (s: ProcessedStats, wr: WeaponRatio | null) => boolean;
 }> = [
+  // 1. 완성형
   {
     id: "perfect",
     title: "완성형 인간",
@@ -243,6 +251,7 @@ const PERSONA_DEFS: Array<{
     tier: "DIAMOND",
     match: (s) => s.kd >= 3.5 && s.winRate >= 10 && s.avgDamage >= 350,
   },
+  // 2. 에임만 신 — KD≥2.0 + winRate<5 + avgDmg≥220 (+nearPct≥55% if weapon data)
   {
     id: "aim_god",
     title: "에임만 신, 뇌는 장식",
@@ -250,8 +259,11 @@ const PERSONA_DEFS: Array<{
     quote: "총은 신이 주셨는데 판단은 안 주셨다",
     type: "MECHANICAL GENIUS",
     tier: "GOLD",
-    match: (s) => s.kd >= 2.0 && s.winRate < 5 && s.headshotRate >= 28,
+    match: (s, wr) =>
+      s.kd >= 2.0 && s.winRate < 5 && s.avgDamage >= 220 &&
+      (wr === null || wr.nearPct >= 55),
   },
+  // 3. 저격의 신 — HS%≥30% + KD≥1.8 (+farPct≥40% if weapon data)
   {
     id: "sniper",
     title: "저격의 신",
@@ -259,8 +271,11 @@ const PERSONA_DEFS: Array<{
     quote: "보이면 죽는다",
     type: "PRECISION MARKSMAN",
     tier: "GOLD",
-    match: (s) => s.headshotRate >= 32 && s.kd >= 1.8,
+    match: (s, wr) =>
+      s.headshotRate >= 30 && s.kd >= 1.8 &&
+      (wr === null || wr.farPct >= 40),
   },
+  // 4. 팀의 구원자 — 부활/게임≥0.6 + 어시/게임≥0.8
   {
     id: "savior",
     title: "팀의 구원자",
@@ -268,8 +283,9 @@ const PERSONA_DEFS: Array<{
     quote: "팀원이 쓰러지면 내 심장도 쓰러진다",
     type: "TACTICAL SUPPORT",
     tier: "SILVER",
-    match: (s) => s.revivesPerGame >= 0.8 && s.assistsPerGame >= 1.0,
+    match: (s) => s.revivesPerGame >= 0.6 && s.assistsPerGame >= 0.8,
   },
+  // 5. 자기장 마스터
   {
     id: "zone_master",
     title: "자기장 마스터",
@@ -279,15 +295,7 @@ const PERSONA_DEFS: Array<{
     tier: "GOLD",
     match: (s) => s.winRate >= 8 && s.avgSurvivalMin >= 22 && s.kd >= 1.0,
   },
-  {
-    id: "assault",
-    title: "돌격대장",
-    titleEn: "ASSAULT COMMANDER",
-    quote: "들어가서 죽는 게 전략이야",
-    type: "AGGRESSIVE RIFLER",
-    tier: "GOLD",
-    match: (s) => s.kd >= 1.5 && s.avgSurvivalMin < 15 && s.avgDamage >= 220,
-  },
+  // 6. 센스쟁이 — KDA≥2.5 + 어시/게임≥1.2 + KD≥1.5
   {
     id: "sense",
     title: "센스쟁이",
@@ -295,8 +303,33 @@ const PERSONA_DEFS: Array<{
     quote: "팀이 잘 되면 나도 잘 된다",
     type: "IQ PLAYER",
     tier: "GOLD",
-    match: (s) => s.kda >= 3.0 && s.assistsPerGame >= 1.5 && s.kd >= 1.2,
+    match: (s) => s.kda >= 2.5 && s.assistsPerGame >= 1.2 && s.kd >= 1.5,
   },
+  // 7. 나만 살면 돼 — 부활/게임<0.2 + KD≥1.4 (+farPct≥35% if weapon data)
+  {
+    id: "lone",
+    title: "나만 살면 돼",
+    titleEn: "LONE SURVIVOR",
+    quote: "팀원? 나도 죽게 생겼는데",
+    type: "LONE WOLF",
+    tier: "SILVER",
+    match: (s, wr) =>
+      s.revivesPerGame < 0.2 && s.kd >= 1.4 &&
+      (wr === null || wr.farPct >= 35),
+  },
+  // 8. 돌격대장 — KD≥1.4 + 평딜≥200 (+nearPct≥50% if weapon data)
+  {
+    id: "assault",
+    title: "돌격대장",
+    titleEn: "ASSAULT COMMANDER",
+    quote: "들어가서 죽는 게 전략이야",
+    type: "AGGRESSIVE RIFLER",
+    tier: "GOLD",
+    match: (s, wr) =>
+      s.kd >= 1.4 && s.avgDamage >= 200 &&
+      (wr === null || wr.nearPct >= 50),
+  },
+  // 9. 존버황제
   {
     id: "camper",
     title: "존버황제",
@@ -306,6 +339,7 @@ const PERSONA_DEFS: Array<{
     tier: "BRONZE",
     match: (s) => s.top10Rate >= 38 && s.kd < 1.0 && s.avgDamage < 130,
   },
+  // 10. 탈것 장인
   {
     id: "vehicle",
     title: "탈것 장인",
@@ -315,15 +349,7 @@ const PERSONA_DEFS: Array<{
     tier: "SILVER",
     match: (s) => s.rideDistPerGame >= 2500 && s.kd >= 1.0,
   },
-  {
-    id: "lone",
-    title: "나만 살면 돼",
-    titleEn: "LONE SURVIVOR",
-    quote: "팀원? 나도 죽게 생겼는데",
-    type: "LONE WOLF",
-    tier: "SILVER",
-    match: (s) => s.revivesPerGame < 0.15 && s.kd >= 1.2 && s.winRate >= 3,
-  },
+  // 11. 맨발의 사나이
   {
     id: "barefoot",
     title: "맨발의 사나이",
@@ -333,6 +359,7 @@ const PERSONA_DEFS: Array<{
     tier: "SILVER",
     match: (s) => s.walkDistPerGame >= 3500 && s.rideDistPerGame < 800,
   },
+  // 12. 마라톤선수
   {
     id: "marathon",
     title: "마라톤선수",
@@ -342,6 +369,7 @@ const PERSONA_DEFS: Array<{
     tier: "BRONZE",
     match: (s) => s.walkDistPerGame >= 4500 && s.kd < 1.0,
   },
+  // 13. 성실한 삽질러
   {
     id: "grinder",
     title: "성실한 삽질러",
@@ -351,6 +379,7 @@ const PERSONA_DEFS: Array<{
     tier: "BRONZE",
     match: (s) => s.roundsPlayed >= 100 && s.kd < 1.0,
   },
+  // 14. 4렙 가방 (fallback)
   {
     id: "rookie",
     title: "4렙 가방",
@@ -362,8 +391,8 @@ const PERSONA_DEFS: Array<{
   },
 ];
 
-export function determinePersona(s: ProcessedStats): Persona {
-  const found = PERSONA_DEFS.find((p) => p.match(s))!;
+export function determinePersona(s: ProcessedStats, wr?: WeaponRatio | null): Persona {
+  const found = PERSONA_DEFS.find((p) => p.match(s, wr ?? null))!;
   return {
     id: found.id,
     title: found.title,

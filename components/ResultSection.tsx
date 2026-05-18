@@ -284,6 +284,7 @@ export default function ResultSection({ playerName, playerData, fetchError, seas
   const [seasons, setSeasons] = useState<SeasonTab[]>([]);
   const [seasonError, setSeasonError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"stats" | "weapons">("stats");
+  const [copied, setCopied] = useState(false);
   const autoSwitchedRef = useRef(false);
   const lastAccountIdRef = useRef<string | null>(null);
 
@@ -704,9 +705,17 @@ export default function ResultSection({ playerName, playerData, fetchError, seas
                 className="px-4 py-2 text-xs font-mono border border-blue-500/30 text-blue-400 tracking-widest uppercase hover:bg-blue-500/10 transition-all rounded-sm">
                 다시 분석
               </button>
-              <button className="px-4 py-2 text-xs font-mono font-bold text-white tracking-widest uppercase rounded-sm"
+              <button
+                onClick={() => {
+                  const url = `${window.location.origin}/?q=${encodeURIComponent(d.name)}`;
+                  navigator.clipboard.writeText(url).then(() => {
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }).catch(() => {});
+                }}
+                className="relative px-4 py-2 text-xs font-mono font-bold text-white tracking-widest uppercase rounded-sm transition-all"
                 style={{ background: "linear-gradient(135deg, #3b82f6, #8b5cf6)", boxShadow: "0 0 18px rgba(59,130,246,0.3)" }}>
-                공유하기
+                {copied ? "복사됨 ✓" : "공유하기"}
               </button>
             </div>
           </motion.div>

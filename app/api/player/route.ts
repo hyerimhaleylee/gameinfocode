@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { findPlayerBulk, getSeasonStats, getSeasonsList, getLifetimeStats, getCurrentSeason, getRankedSeasonStats } from "@/lib/pubg";
+import { findPlayerBulk, getSeasonStats, getSeasonsList, getLifetimeStats, getCurrentSeason, getRankedSeasonStats, getWeaponStats } from "@/lib/pubg";
 import {
   extractBestModeStats,
   getAllModeRows,
@@ -11,7 +11,7 @@ import {
   generateRecommendation,
   calculateRadarValues,
 } from "@/lib/persona";
-import type { RawModeStats, RankedModeRow, RankedTier } from "@/lib/persona";
+import type { RawModeStats, RankedModeRow, RankedTier, WeaponRatio } from "@/lib/persona";
 
 function extractRankedTier(rankedStats: Record<string, unknown> | null): RankedTier | null {
   if (!rankedStats) return null;
@@ -78,6 +78,9 @@ export async function GET(req: NextRequest) {
       playerName = player.attributes.name;
       shard = foundShard;
     }
+
+    // Start weapon stats in background immediately — runs parallel to season logic
+    const weaponStatsPromise = getWeaponStats(accountId, shard).catch(() => null);
 
     let gameModeStats: Record<string, RawModeStats>;
     let seasonId: string;
@@ -190,7 +193,15 @@ export async function GET(req: NextRequest) {
     const stats = processStats(playerName, rawStats);
     const modeName = getModeLabel(modeKey);
     const allModes = getAllModeRows(gameModeStats, playerName);
-    const persona = determinePersona(stats);
+
+    // Await weapon stats (should be done or near-done since it ran in parallel)
+    const weaponStats = await weaponStatsPromise;
+    let weaponRatio: WeaponRatio | null = null;
+    if (weaponStats && weaponStats.totalTracked >= 10) {
+      weaponRatio = { nearPct: weaponStats.nearPct, farPct: weaponStats.farPct, totalTracked: weaponStats.totalTracked };
+    }
+
+    const persona = determinePersona(stats, weaponRatio);
     const insights = generateInsights(stats);
     const recommendation = generateRecommendation(stats);
     const radarValues = calculateRadarValues(stats);
@@ -218,6 +229,7 @@ export async function GET(req: NextRequest) {
       allModes,
       rankedModes,
       rankedTier,
+      weaponRatio,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "분석 중 오류가 발생했습니다.";

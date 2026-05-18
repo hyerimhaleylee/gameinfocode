@@ -13,13 +13,14 @@ interface WeaponApiResponse {
 const CATEGORY_META: Record<string, { label: string; color: string; bg: string }> = {
   AR:       { label: "돌격소총 (AR)",  color: "#22d3ee", bg: "rgba(34,211,238,0.12)" },
   SMG:      { label: "기관단총 (SMG)", color: "#a855f7", bg: "rgba(168,85,247,0.12)" },
+  SG:       { label: "샷건 (SG)",      color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
   DMR:      { label: "지정사수 (DMR)", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
   SR:       { label: "저격총 (SR)",    color: "#3b82f6", bg: "rgba(59,130,246,0.12)" },
   Throwable:{ label: "투척류",         color: "#f97316", bg: "rgba(249,115,22,0.12)" },
   기타:     { label: "기타",           color: "#64748b", bg: "rgba(100,116,139,0.08)" },
 };
 
-const CATEGORY_ORDER = ["AR", "SMG", "DMR", "SR", "Throwable", "기타"];
+const CATEGORY_ORDER = ["AR", "SMG", "SG", "DMR", "SR", "Throwable", "기타"];
 
 function CategoryBar({ category, kills, total }: { category: string; kills: number; total: number }) {
   const meta = CATEGORY_META[category] ?? CATEGORY_META["기타"];

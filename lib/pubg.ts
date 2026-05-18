@@ -288,7 +288,7 @@ export async function getLeaderboard(
   shard = "steam"
 ): Promise<LeaderboardEntry[]> {
   const res = await pubgFetch(
-    `${BASE}/${shard}/leaderboards/${seasonId}/${gameMode}`,
+    `${BASE}/${shard}/leaderboards/${seasonId}/${gameMode}?filter[playerCount]=100`,
     { next: { revalidate: 3600 } } as RequestInit
   );
   if (!res.ok) throw new Error(`리더보드 조회 오류 (${res.status})`);
@@ -351,6 +351,7 @@ export async function getPlayerById(accountId: string, shard = "steam") {
 const WEAPON_CATEGORY_MAP: Record<string, string[]> = {
   AR:       ["HK416", "AK47", "BerylM762", "SCARL", "SCAR-L", "G36C", "Groza", "QBZ", "QBZ95", "ACE32", "K2", "Mk47Mutant", "M16A4", "AUG"],
   SMG:      ["UMP45", "UMP", "Vector", "MicroUZI", "Thompson", "PP19Bizon", "BizonPP19", "MP5K", "P90"],
+  SG:       ["Saiga12", "S686", "S1897", "S12K", "DBS", "O12"],
   DMR:      ["FNFal", "SKS", "Mk12", "Mk14", "QBU88", "QBU", "Mini14", "VSS"],
   SR:       ["Kar98k", "AWM", "M24", "Mosin", "Win94", "LynxAMR"],
   Throwable:["FragGrenade", "Molotov", "MolotovCocktail", "C4Explosive"],
@@ -367,6 +368,7 @@ export const WEAPON_DISPLAY_MAP: Record<string, string> = {
   QBU88: "QBU", QBU: "QBU", Mini14: "Mini 14", VSS: "VSS",
   Kar98k: "Kar98k", AWM: "AWM", M24: "M24", Mosin: "Mosin-Nagant",
   Win94: "Win94", LynxAMR: "Lynx AMR",
+  Saiga12: "Saiga-12", S686: "S686", S1897: "S1897", S12K: "S12K", DBS: "DBS", O12: "O12",
   FragGrenade: "수류탄", Molotov: "화염병", MolotovCocktail: "화염병",
   C4Explosive: "C4",
 };
@@ -399,7 +401,16 @@ export interface WeaponStats {
   topWeapons: WeaponKillEntry[];
   totalTracked: number;
   matchesAnalyzed: number;
-  cachedMatchCount?: number; // previously seen match IDs loaded from Redis history
+  cachedMatchCount?: number;
+  nearPct: number; // (AR + SMG + SG) / total
+  farPct: number;  // (DMR + SR) / total
+}
+
+function calcRangePcts(by: Record<string, number>, total: number): { nearPct: number; farPct: number } {
+  if (total === 0) return { nearPct: 0, farPct: 0 };
+  const near = (by.AR ?? 0) + (by.SMG ?? 0) + (by.SG ?? 0);
+  const far = (by.DMR ?? 0) + (by.SR ?? 0);
+  return { nearPct: Math.round((near / total) * 100), farPct: Math.round((far / total) * 100) };
 }
 
 async function fetchTelemetryUrl(matchId: string, shard: string): Promise<string | null> {
@@ -507,7 +518,7 @@ export async function getWeaponMastery(accountId: string, shard = "steam"): Prom
     { statsTotal?: { kills?: number } }
   >;
 
-  const byCategory: Record<string, number> = { AR: 0, SMG: 0, DMR: 0, SR: 0, Throwable: 0, 기타: 0 };
+  const byCategory: Record<string, number> = { AR: 0, SMG: 0, SG: 0, DMR: 0, SR: 0, Throwable: 0, 기타: 0 };
   const weaponCounts = new Map<string, number>();
 
   for (const [weaponId, data] of Object.entries(weaponsInfo)) {
@@ -530,7 +541,8 @@ export async function getWeaponMastery(accountId: string, shard = "steam"): Prom
     .sort((a, b) => b.kills - a.kills)
     .slice(0, 10);
 
-  return { byCategory, topWeapons, totalTracked, matchesAnalyzed: -1 };
+  const { nearPct, farPct } = calcRangePcts(byCategory, totalTracked);
+  return { byCategory, topWeapons, totalTracked, matchesAnalyzed: -1, nearPct, farPct };
 }
 
 export async function getWeaponStats(accountId: string, shard = "steam"): Promise<WeaponStats> {
@@ -557,7 +569,7 @@ export async function getWeaponStats(accountId: string, shard = "steam"): Promis
   }
 
   if (matchIds.length === 0) {
-    return { byCategory: {}, topWeapons: [], totalTracked: 0, matchesAnalyzed: 0 };
+    return { byCategory: {}, topWeapons: [], totalTracked: 0, matchesAnalyzed: 0, nearPct: 0, farPct: 0 };
   }
 
   const urlResults = await Promise.allSettled(
@@ -574,7 +586,7 @@ export async function getWeaponStats(accountId: string, shard = "steam"): Promis
     r.status === "fulfilled" ? r.value : []
   );
 
-  const byCategory: Record<string, number> = { AR: 0, SMG: 0, DMR: 0, SR: 0, Throwable: 0, 기타: 0 };
+  const byCategory: Record<string, number> = { AR: 0, SMG: 0, SG: 0, DMR: 0, SR: 0, Throwable: 0, 기타: 0 };
   const weaponCounts = new Map<string, number>();
 
   for (const raw of allWeapons) {
@@ -594,11 +606,14 @@ export async function getWeaponStats(accountId: string, shard = "steam"): Promis
     .sort((a, b) => b.kills - a.kills)
     .slice(0, 8);
 
+  const { nearPct, farPct } = calcRangePcts(byCategory, allWeapons.length);
   return {
     byCategory,
     topWeapons,
     totalTracked: allWeapons.length,
     matchesAnalyzed: telemetryEntries.length,
     cachedMatchCount: cachedCount,
+    nearPct,
+    farPct,
   };
 }
