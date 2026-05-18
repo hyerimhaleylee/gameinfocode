@@ -1,5 +1,8 @@
 import { kv } from "@vercel/kv";
 
+// L1: in-memory cache — survives within a warm function instance
+const _memCache = new Map<string, string[]>();
+
 const BASE = "https://api.pubg.com/shards";
 
 // Supports multiple comma-separated keys in PUBG_API_KEY for rate limit distribution
@@ -450,12 +453,19 @@ async function fetchKillWeapons(
 ): Promise<string[]> {
   const cacheKey = `weapon:kills:${matchId}:${accountId}`;
 
-  // KV cache hit — return immediately without downloading telemetry
+  // L1: memory cache (instant, same function instance)
+  if (_memCache.has(cacheKey)) return _memCache.get(cacheKey)!;
+
+  // L2: Vercel KV (persists across instances and deployments)
   try {
     const cached = await kv.get<string[]>(cacheKey);
-    if (cached !== null) return cached;
-  } catch { /* KV not configured — fall through to fetch */ }
+    if (cached !== null) {
+      _memCache.set(cacheKey, cached);
+      return cached;
+    }
+  } catch { /* KV not connected yet — fall through */ }
 
+  // L3: fetch + parse telemetry
   try {
     const res = await fetch(telemetryUrl, {
       next: { revalidate: 86400 },
@@ -465,10 +475,9 @@ async function fetchKillWeapons(
     const text = await res.text();
     const results = await parseTelemetryText(text, accountId);
 
-    // Store in KV — match data is immutable, no TTL needed
-    try {
-      await kv.set(cacheKey, results);
-    } catch { /* KV not configured — no-op */ }
+    // Write to both caches
+    _memCache.set(cacheKey, results);
+    try { await kv.set(cacheKey, results); } catch { /* KV not connected yet */ }
 
     return results;
   } catch {
