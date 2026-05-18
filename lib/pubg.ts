@@ -412,19 +412,44 @@ async function fetchKillWeapons(telemetryUrl: string, accountId: string): Promis
       next: { revalidate: 86400 },
     } as RequestInit);
     if (!res.ok) return [];
-    const events = await res.json() as Array<{
-      _T: string;
-      killer?: { accountId: string };
-      killerDamageInfo?: { damageCauserName: string };
-    }>;
-    return events
-      .filter(
-        (e) =>
-          e._T === "LogPlayerKillV2" &&
-          e.killer?.accountId === accountId &&
-          !!e.killerDamageInfo?.damageCauserName
-      )
-      .map((e) => e.killerDamageInfo!.damageCauserName);
+
+    // res.text() instead of res.json() — avoids building a full JS object tree
+    // for the entire 5-15MB file. We scan for kill events only.
+    const text = await res.text();
+    const TARGET = '"_T":"LogPlayerKillV2"';
+    const results: string[] = [];
+    let pos = 0;
+
+    while (pos < text.length) {
+      const idx = text.indexOf(TARGET, pos);
+      if (idx === -1) break;
+
+      // _T is always the first key → the opening { is just before it
+      let start = idx - 1;
+      while (start >= 0 && text[start] !== "{") start--;
+      if (start < 0) { pos = idx + TARGET.length; continue; }
+
+      // Walk forward to find the matching closing brace
+      let depth = 0, end = start;
+      for (; end < text.length; end++) {
+        if (text[end] === "{") depth++;
+        else if (text[end] === "}" && --depth === 0) { end++; break; }
+      }
+
+      try {
+        const obj = JSON.parse(text.slice(start, end)) as {
+          killer?: { accountId: string };
+          killerDamageInfo?: { damageCauserName: string };
+        };
+        if (obj.killer?.accountId === accountId && obj.killerDamageInfo?.damageCauserName) {
+          results.push(obj.killerDamageInfo.damageCauserName);
+        }
+      } catch { /* malformed — skip */ }
+
+      pos = end;
+    }
+
+    return results;
   } catch {
     return [];
   }
@@ -470,7 +495,7 @@ export async function getWeaponMastery(accountId: string, shard = "steam"): Prom
 }
 
 export async function getWeaponStats(accountId: string, shard = "steam"): Promise<WeaponStats> {
-  const MAX_MATCHES = 10;
+  const MAX_MATCHES = 20;
 
   const player = await getPlayerById(accountId, shard);
   const matchIds: string[] = (player.relationships?.matches?.data ?? [])

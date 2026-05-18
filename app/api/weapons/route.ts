@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getWeaponStats, getWeaponMastery } from "@/lib/pubg";
 
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 export async function GET(req: NextRequest) {
   const accountId = req.nextUrl.searchParams.get("accountId");
