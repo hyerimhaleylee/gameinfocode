@@ -198,9 +198,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       name: stats.name,
       kd: stats.kdStr,
+      kda: stats.kda.toFixed(2),
       winRate: stats.winRateStr,
       avgDamage: stats.avgDamageStr,
       headshot: stats.headshotStr,
+      assistsPerGame: stats.assistsPerGame.toFixed(1),
       games: stats.gamesStr,
       persona,
       radarValues,

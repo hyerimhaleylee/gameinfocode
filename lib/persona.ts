@@ -95,9 +95,11 @@ export interface RankedModeRow {
 export interface PlayerApiResponse {
   name: string;
   kd: string;
+  kda: string;
   winRate: string;
   avgDamage: string;
   headshot: string;
+  assistsPerGame: string;
   games: string;
   persona: Persona;
   radarValues: number[];
