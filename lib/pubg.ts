@@ -1,3 +1,5 @@
+import { kv } from "@vercel/kv";
+
 const BASE = "https://api.pubg.com/shards";
 
 // Supports multiple comma-separated keys in PUBG_API_KEY for rate limit distribution
@@ -406,48 +408,67 @@ async function fetchTelemetryUrl(matchId: string, shard: string): Promise<string
   }
 }
 
-async function fetchKillWeapons(telemetryUrl: string, accountId: string): Promise<string[]> {
+async function parseTelemetryText(text: string, accountId: string): Promise<string[]> {
+  const TARGET = '"_T":"LogPlayerKillV2"';
+  const results: string[] = [];
+  let pos = 0;
+
+  while (pos < text.length) {
+    const idx = text.indexOf(TARGET, pos);
+    if (idx === -1) break;
+
+    let start = idx - 1;
+    while (start >= 0 && text[start] !== "{") start--;
+    if (start < 0) { pos = idx + TARGET.length; continue; }
+
+    let depth = 0, end = start;
+    for (; end < text.length; end++) {
+      if (text[end] === "{") depth++;
+      else if (text[end] === "}" && --depth === 0) { end++; break; }
+    }
+
+    try {
+      const obj = JSON.parse(text.slice(start, end)) as {
+        killer?: { accountId: string };
+        killerDamageInfo?: { damageCauserName: string };
+      };
+      if (obj.killer?.accountId === accountId && obj.killerDamageInfo?.damageCauserName) {
+        results.push(obj.killerDamageInfo.damageCauserName);
+      }
+    } catch { /* malformed — skip */ }
+
+    pos = end;
+  }
+
+  return results;
+}
+
+async function fetchKillWeapons(
+  telemetryUrl: string,
+  accountId: string,
+  matchId: string
+): Promise<string[]> {
+  const cacheKey = `weapon:kills:${matchId}:${accountId}`;
+
+  // KV cache hit — return immediately without downloading telemetry
+  try {
+    const cached = await kv.get<string[]>(cacheKey);
+    if (cached !== null) return cached;
+  } catch { /* KV not configured — fall through to fetch */ }
+
   try {
     const res = await fetch(telemetryUrl, {
       next: { revalidate: 86400 },
     } as RequestInit);
     if (!res.ok) return [];
 
-    // res.text() instead of res.json() — avoids building a full JS object tree
-    // for the entire 5-15MB file. We scan for kill events only.
     const text = await res.text();
-    const TARGET = '"_T":"LogPlayerKillV2"';
-    const results: string[] = [];
-    let pos = 0;
+    const results = await parseTelemetryText(text, accountId);
 
-    while (pos < text.length) {
-      const idx = text.indexOf(TARGET, pos);
-      if (idx === -1) break;
-
-      // _T is always the first key → the opening { is just before it
-      let start = idx - 1;
-      while (start >= 0 && text[start] !== "{") start--;
-      if (start < 0) { pos = idx + TARGET.length; continue; }
-
-      // Walk forward to find the matching closing brace
-      let depth = 0, end = start;
-      for (; end < text.length; end++) {
-        if (text[end] === "{") depth++;
-        else if (text[end] === "}" && --depth === 0) { end++; break; }
-      }
-
-      try {
-        const obj = JSON.parse(text.slice(start, end)) as {
-          killer?: { accountId: string };
-          killerDamageInfo?: { damageCauserName: string };
-        };
-        if (obj.killer?.accountId === accountId && obj.killerDamageInfo?.damageCauserName) {
-          results.push(obj.killerDamageInfo.damageCauserName);
-        }
-      } catch { /* malformed — skip */ }
-
-      pos = end;
-    }
+    // Store in KV — match data is immutable, no TTL needed
+    try {
+      await kv.set(cacheKey, results);
+    } catch { /* KV not configured — no-op */ }
 
     return results;
   } catch {
@@ -507,14 +528,14 @@ export async function getWeaponStats(accountId: string, shard = "steam"): Promis
   }
 
   const urlResults = await Promise.allSettled(
-    matchIds.map((id) => fetchTelemetryUrl(id, shard))
+    matchIds.map((id) => fetchTelemetryUrl(id, shard).then((url) => ({ id, url })))
   );
-  const telemetryUrls = urlResults
+  const telemetryEntries = urlResults
     .map((r) => (r.status === "fulfilled" ? r.value : null))
-    .filter(Boolean) as string[];
+    .filter((v): v is { id: string; url: string } => v !== null && v.url !== null);
 
   const killResults = await Promise.allSettled(
-    telemetryUrls.map((url) => fetchKillWeapons(url, accountId))
+    telemetryEntries.map(({ url, id }) => fetchKillWeapons(url, accountId, id))
   );
   const allWeapons = killResults.flatMap((r) =>
     r.status === "fulfilled" ? r.value : []
@@ -544,6 +565,6 @@ export async function getWeaponStats(accountId: string, shard = "steam"): Promis
     byCategory,
     topWeapons,
     totalTracked: allWeapons.length,
-    matchesAnalyzed: telemetryUrls.length,
+    matchesAnalyzed: telemetryEntries.length,
   };
 }
