@@ -1,4 +1,10 @@
-import { kv } from "@vercel/kv";
+import { Redis } from "@upstash/redis";
+
+// Upstash Redis client — auto-reads UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN
+// Gracefully undefined if env vars not set yet
+const redis = (() => {
+  try { return Redis.fromEnv(); } catch { return null; }
+})();
 
 // L1: in-memory cache — survives within a warm function instance
 const _memCache = new Map<string, string[]>();
@@ -456,14 +462,16 @@ async function fetchKillWeapons(
   // L1: memory cache (instant, same function instance)
   if (_memCache.has(cacheKey)) return _memCache.get(cacheKey)!;
 
-  // L2: Vercel KV (persists across instances and deployments)
-  try {
-    const cached = await kv.get<string[]>(cacheKey);
-    if (cached !== null) {
-      _memCache.set(cacheKey, cached);
-      return cached;
-    }
-  } catch { /* KV not connected yet — fall through */ }
+  // L2: Upstash Redis (persists across instances and deployments)
+  if (redis) {
+    try {
+      const cached = await redis.get<string[]>(cacheKey);
+      if (cached !== null) {
+        _memCache.set(cacheKey, cached);
+        return cached;
+      }
+    } catch { /* Redis error — fall through */ }
+  }
 
   // L3: fetch + parse telemetry
   try {
@@ -477,7 +485,7 @@ async function fetchKillWeapons(
 
     // Write to both caches
     _memCache.set(cacheKey, results);
-    try { await kv.set(cacheKey, results); } catch { /* KV not connected yet */ }
+    if (redis) { try { await redis.set(cacheKey, results); } catch { /* Redis error */ } }
 
     return results;
   } catch {
