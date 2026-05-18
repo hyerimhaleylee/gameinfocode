@@ -251,7 +251,7 @@ const PERSONA_DEFS: Array<{
     tier: "DIAMOND",
     match: (s) => s.kd >= 3.5 && s.winRate >= 10 && s.avgDamage >= 350,
   },
-  // 2. 에임만 신 — KD≥2.0 + winRate<5 + avgDmg≥220 (+nearPct≥55% if weapon data)
+  // 2. 에임만 신 — KD≥2.0 + 어시/게임<0.8 + 평딜≥220 (+nearPct≥55% if weapon data)
   {
     id: "aim_god",
     title: "에임만 신, 뇌는 장식",
@@ -260,8 +260,8 @@ const PERSONA_DEFS: Array<{
     type: "MECHANICAL GENIUS",
     tier: "GOLD",
     match: (s, wr) =>
-      s.kd >= 2.0 && s.winRate < 5 && s.avgDamage >= 220 &&
-      (wr === null || wr.nearPct >= 55),
+      s.kd >= 2.0 && s.assistsPerGame < 0.8 && s.avgDamage >= 220 &&
+      (wr !== null ? wr.nearPct >= 55 : true),
   },
   // 3. 저격의 신 — HS%≥30% + KD≥1.8 (+farPct≥40% if weapon data)
   {
@@ -305,7 +305,7 @@ const PERSONA_DEFS: Array<{
     tier: "GOLD",
     match: (s) => s.kda >= 2.5 && s.assistsPerGame >= 1.2 && s.kd >= 1.5,
   },
-  // 7. 나만 살면 돼 — 부활/게임<0.2 + KD≥1.4 (+farPct≥35% if weapon data)
+  // 7. 나만 살면 돼 — 부활/게임<0.2 + KD≥1.4 + 승률≥2% (+farPct≥35% if weapon data, else 생존시간≥15분)
   {
     id: "lone",
     title: "나만 살면 돼",
@@ -314,10 +314,10 @@ const PERSONA_DEFS: Array<{
     type: "LONE WOLF",
     tier: "SILVER",
     match: (s, wr) =>
-      s.revivesPerGame < 0.2 && s.kd >= 1.4 &&
-      (wr === null || wr.farPct >= 35),
+      s.revivesPerGame < 0.2 && s.kd >= 1.4 && s.winRate >= 2 &&
+      (wr !== null ? wr.farPct >= 35 : s.avgSurvivalMin >= 15),
   },
-  // 8. 돌격대장 — KD≥1.4 + 평딜≥200 (+nearPct≥50% if weapon data)
+  // 8. 돌격대장 — KD≥1.4 + 평딜≥200 (+nearPct≥50% if weapon data, else 생존시간<17분)
   {
     id: "assault",
     title: "돌격대장",
@@ -327,7 +327,7 @@ const PERSONA_DEFS: Array<{
     tier: "GOLD",
     match: (s, wr) =>
       s.kd >= 1.4 && s.avgDamage >= 200 &&
-      (wr === null || wr.nearPct >= 50),
+      (wr !== null ? wr.nearPct >= 50 : s.avgSurvivalMin < 17),
   },
   // 9. 존버황제
   {

@@ -291,8 +291,10 @@ export async function getLeaderboard(
     `${BASE}/${shard}/leaderboards/${seasonId}/${gameMode}?filter[playerCount]=100`,
     { next: { revalidate: 3600 } } as RequestInit
   );
-  if (!res.ok) throw new Error(`리더보드 조회 오류 (${res.status})`);
-  const json = await res.json();
+  const resText = await res.text();
+  if (!res.ok) throw new Error(`리더보드 조회 오류 (${res.status}): ${resText.slice(0, 200)}`);
+
+  const json = JSON.parse(resText) as Record<string, unknown>;
 
   type RawPlayer = {
     type: string;
@@ -314,28 +316,49 @@ export async function getLeaderboard(
     };
   };
 
+  const mapPlayer = (p: RawPlayer): LeaderboardEntry => {
+    const s = p.attributes.stats;
+    return {
+      rank: p.attributes.rank,
+      accountId: p.id,
+      name: p.attributes.name,
+      rankPoint: s.rankPoint ?? 0,
+      wins: s.wins ?? 0,
+      games: s.games ?? 0,
+      winRatio: s.winRatio ?? 0,
+      averageDamage: s.averageDamage ?? 0,
+      kills: s.kills ?? 0,
+      killDeathRatio: s.killDeathRatio ?? 0,
+      kda: s.kda ?? 0,
+      averageRank: s.averageRank ?? 0,
+    };
+  };
+
+  // JSONAPI format: players in included[]
   const included = (json.included ?? []) as RawPlayer[];
-  return included
-    .filter((p) => p.type === "player")
-    .sort((a, b) => a.attributes.rank - b.attributes.rank)
-    .slice(0, 100)
-    .map((p) => {
-      const s = p.attributes.stats;
-      return {
-        rank: p.attributes.rank,
-        accountId: p.id,
-        name: p.attributes.name,
-        rankPoint: s.rankPoint ?? 0,
-        wins: s.wins ?? 0,
-        games: s.games ?? 0,
-        winRatio: s.winRatio ?? 0,
-        averageDamage: s.averageDamage ?? 0,
-        kills: s.kills ?? 0,
-        killDeathRatio: s.killDeathRatio ?? 0,
-        kda: s.kda ?? 0,
-        averageRank: s.averageRank ?? 0,
-      };
-    });
+  const fromIncluded = included.filter((p) => p.type === "player");
+  if (fromIncluded.length > 0) {
+    return fromIncluded
+      .sort((a, b) => a.attributes.rank - b.attributes.rank)
+      .slice(0, 100)
+      .map(mapPlayer);
+  }
+
+  // Alternative: players embedded in data.relationships.players.data[]
+  const relPlayers = (
+    (json.data as Record<string, unknown>)?.relationships as Record<string, unknown>
+  )?.players as { data?: RawPlayer[] } | undefined;
+  const fromRel = relPlayers?.data ?? [];
+  if (fromRel.length > 0) {
+    return fromRel
+      .sort((a, b) => a.attributes.rank - b.attributes.rank)
+      .slice(0, 100)
+      .map(mapPlayer);
+  }
+
+  throw new Error(
+    `리더보드 데이터 없음 — API 응답 키: ${Object.keys(json).join(", ")} / included: ${included.length}건`
+  );
 }
 
 // Fetch a single player by account ID (used by teammates endpoint)
