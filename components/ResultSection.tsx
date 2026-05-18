@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { PlayerApiResponse, ModeRow, RankedModeRow } from "@/lib/persona";
 import type { MatchEntry } from "@/lib/pubg";
+import WeaponTab from "./WeaponTab";
 
 const AXES = ["Combat", "Survival", "Mobility", "Squadplay", "Consistency", "Adaptability"];
 
@@ -282,8 +283,14 @@ interface Props {
 export default function ResultSection({ playerName, playerData, fetchError, seasonLoading, matches, matchesLoading, onReset, onSeasonChange }: Props) {
   const [seasons, setSeasons] = useState<SeasonTab[]>([]);
   const [seasonError, setSeasonError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"stats" | "weapons">("stats");
   const autoSwitchedRef = useRef(false);
   const lastAccountIdRef = useRef<string | null>(null);
+
+  // Reset tab when player changes
+  useEffect(() => {
+    if (playerData?.accountId) setActiveTab("stats");
+  }, [playerData?.accountId]);
 
   useEffect(() => {
     fetch("/api/seasons").then((r) => r.json()).then((data) => {
@@ -400,6 +407,27 @@ export default function ResultSection({ playerName, playerData, fetchError, seas
               className="mt-4 px-4 py-2 text-xs font-mono text-blue-400 border border-blue-500/30 hover:bg-blue-500/10 transition-all tracking-widest uppercase rounded-sm">
               다시 시도
             </button>
+          </motion.div>
+        )}
+
+        {/* ─── TAB SELECTOR ─── */}
+        {playerData && (
+          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
+            className="mb-5 flex items-center gap-1 border-b border-white/6 pb-0">
+            {(["stats", "weapons"] as const).map((tab) => {
+              const labels = { stats: "전적 분석", weapons: "무기 분석" };
+              const isActive = activeTab === tab;
+              return (
+                <button key={tab} onClick={() => setActiveTab(tab)}
+                  className={`px-4 py-2.5 text-[11px] font-mono tracking-wider border-b-2 transition-all -mb-px ${
+                    isActive
+                      ? "border-cyan-400 text-cyan-300"
+                      : "border-transparent text-slate-500 hover:text-slate-300"
+                  }`}>
+                  {labels[tab]}
+                </button>
+              );
+            })}
           </motion.div>
         )}
 
@@ -521,8 +549,16 @@ export default function ResultSection({ playerName, playerData, fetchError, seas
           </motion.div>
         </motion.div>
 
+        {/* ─── WEAPON TAB ─── */}
+        {activeTab === "weapons" && playerData && (
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}
+            className="mb-6">
+            <WeaponTab accountId={playerData.accountId} shard={playerData.shard} />
+          </motion.div>
+        )}
+
         {/* ─── ANALYSIS GRID ─── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+        {activeTab === "stats" && <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.5 }}
             className="border border-blue-500/12 p-5 rounded-sm"
             style={{ background: "rgba(10,18,40,0.85)" }}>
@@ -564,10 +600,10 @@ export default function ResultSection({ playerName, playerData, fetchError, seas
               </motion.div>
             )}
           </motion.div>
-        </div>
+        </div>}
 
-        {/* ─── MODE BREAKDOWN TABLE ─── */}
-        {d.allModes.length > 0 && (
+        {/* ─── STATS-ONLY SECTIONS ─── */}
+        {activeTab === "stats" && d.allModes.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.8 }}
             className="border border-white/8 rounded-sm mb-5 overflow-hidden"
             style={{ background: "rgba(10,15,30,0.9)" }}>
@@ -582,7 +618,7 @@ export default function ResultSection({ playerName, playerData, fetchError, seas
         )}
 
         {/* ─── RANKED STATS ─── */}
-        {d.rankedModes && d.rankedModes.length > 0 && (
+        {activeTab === "stats" && d.rankedModes && d.rankedModes.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.9 }}
             className="border border-amber-500/15 rounded-sm mb-5 overflow-hidden"
             style={{ background: "rgba(10,15,30,0.9)" }}>
@@ -597,7 +633,7 @@ export default function ResultSection({ playerName, playerData, fetchError, seas
         )}
 
         {/* Season hint when no ranked data and viewing specific season */}
-        {!d.rankedModes && d.seasonId && d.seasonId !== "lifetime" && (
+        {activeTab === "stats" && !d.rankedModes && d.seasonId && d.seasonId !== "lifetime" && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.9 }}
             className="mb-5 px-4 py-3 border border-white/5 rounded-sm flex items-center gap-2"
             style={{ background: "rgba(255,255,255,0.02)" }}>
@@ -607,7 +643,7 @@ export default function ResultSection({ playerName, playerData, fetchError, seas
         )}
 
         {/* ─── 자주 함께한 플레이어 ─── */}
-        {frequentTeammates.length > 0 && (
+        {activeTab === "stats" && frequentTeammates.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 2.0 }}
             className="border border-white/8 rounded-sm mb-5 overflow-hidden"
             style={{ background: "rgba(10,15,30,0.9)" }}>
@@ -631,7 +667,7 @@ export default function ResultSection({ playerName, playerData, fetchError, seas
         )}
 
         {/* ─── MATCH HISTORY ─── */}
-        {(matchesLoading || matches.length > 0) && (
+        {activeTab === "stats" && (matchesLoading || matches.length > 0) && (
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 2.0 }}
             className="border border-white/8 rounded-sm mb-5 overflow-hidden"
             style={{ background: "rgba(10,15,30,0.9)" }}>
@@ -654,24 +690,26 @@ export default function ResultSection({ playerName, playerData, fetchError, seas
         )}
 
         {/* ─── SHARE ─── */}
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 2.2 }}
-          className="border border-white/6 rounded-sm p-5 flex flex-col sm:flex-row items-center justify-between gap-4"
-          style={{ background: "rgba(255,255,255,0.02)" }}>
-          <div>
-            <p className="text-white font-semibold text-sm mb-0.5">결과를 친구에게 공유해보세요</p>
-            <p className="text-slate-500 text-xs">스크린샷 찍어서 디스코드·카카오톡에 공유하면 반응 보장</p>
-          </div>
-          <div className="flex items-center gap-2.5 shrink-0">
-            <button onClick={onReset}
-              className="px-4 py-2 text-xs font-mono border border-blue-500/30 text-blue-400 tracking-widest uppercase hover:bg-blue-500/10 transition-all rounded-sm">
-              다시 분석
-            </button>
-            <button className="px-4 py-2 text-xs font-mono font-bold text-white tracking-widest uppercase rounded-sm"
-              style={{ background: "linear-gradient(135deg, #3b82f6, #8b5cf6)", boxShadow: "0 0 18px rgba(59,130,246,0.3)" }}>
-              공유하기
-            </button>
-          </div>
-        </motion.div>
+        {activeTab === "stats" && (
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 2.2 }}
+            className="border border-white/6 rounded-sm p-5 flex flex-col sm:flex-row items-center justify-between gap-4"
+            style={{ background: "rgba(255,255,255,0.02)" }}>
+            <div>
+              <p className="text-white font-semibold text-sm mb-0.5">결과를 친구에게 공유해보세요</p>
+              <p className="text-slate-500 text-xs">스크린샷 찍어서 디스코드·카카오톡에 공유하면 반응 보장</p>
+            </div>
+            <div className="flex items-center gap-2.5 shrink-0">
+              <button onClick={onReset}
+                className="px-4 py-2 text-xs font-mono border border-blue-500/30 text-blue-400 tracking-widest uppercase hover:bg-blue-500/10 transition-all rounded-sm">
+                다시 분석
+              </button>
+              <button className="px-4 py-2 text-xs font-mono font-bold text-white tracking-widest uppercase rounded-sm"
+                style={{ background: "linear-gradient(135deg, #3b82f6, #8b5cf6)", boxShadow: "0 0 18px rgba(59,130,246,0.3)" }}>
+                공유하기
+              </button>
+            </div>
+          </motion.div>
+        )}
       </div>
     </section>
   );

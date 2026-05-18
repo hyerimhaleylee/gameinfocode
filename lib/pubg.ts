@@ -334,3 +334,152 @@ export async function getPlayerById(accountId: string, shard = "steam") {
   const json = await res.json();
   return json.data;
 }
+
+// ─── WEAPON STATS (telemetry-based) ────────────────────────────────────────
+
+const WEAPON_CATEGORY_MAP: Record<string, string[]> = {
+  AR:       ["HK416", "AK47", "BerylM762", "SCARL", "SCAR-L", "G36C", "Groza", "QBZ", "QBZ95", "ACE32", "K2", "Mk47Mutant", "M16A4", "AUG"],
+  SMG:      ["UMP45", "UMP", "Vector", "MicroUZI", "Thompson", "PP19Bizon", "BizonPP19", "MP5K", "P90"],
+  DMR:      ["FNFal", "SKS", "Mk12", "Mk14", "QBU88", "QBU", "Mini14", "VSS"],
+  SR:       ["Kar98k", "AWM", "M24", "Mosin", "Win94", "LynxAMR"],
+  Throwable:["FragGrenade", "Molotov", "MolotovCocktail", "C4Explosive"],
+};
+
+export const WEAPON_DISPLAY_MAP: Record<string, string> = {
+  HK416: "M416", AK47: "AKM", BerylM762: "Beryl M762", SCARL: "SCAR-L", "SCAR-L": "SCAR-L",
+  G36C: "G36C", Groza: "Groza", QBZ: "QBZ95", QBZ95: "QBZ95", ACE32: "ACE32",
+  K2: "K2", Mk47Mutant: "Mk47 Mutant", M16A4: "M16A4", AUG: "AUG A3",
+  UMP45: "UMP45", UMP: "UMP45", Vector: "Vector", MicroUZI: "Micro UZI",
+  Thompson: "Tommy Gun", PP19Bizon: "PP-19 Bizon", BizonPP19: "PP-19 Bizon",
+  MP5K: "MP5K", P90: "P90",
+  FNFal: "SLR", SKS: "SKS", Mk12: "Mk12", Mk14: "Mk14 EBR",
+  QBU88: "QBU", QBU: "QBU", Mini14: "Mini 14", VSS: "VSS",
+  Kar98k: "Kar98k", AWM: "AWM", M24: "M24", Mosin: "Mosin-Nagant",
+  Win94: "Win94", LynxAMR: "Lynx AMR",
+  FragGrenade: "수류탄", Molotov: "화염병", MolotovCocktail: "화염병",
+  C4Explosive: "C4",
+};
+
+function extractInternalName(damageCauserName: string): string {
+  return damageCauserName
+    .replace(/^Weap/, "")
+    .replace(/^Proj/, "")
+    .replace(/_C$/, "")
+    .split("_")[0];
+}
+
+function categorizeWeapon(internalName: string): string {
+  const lower = internalName.toLowerCase();
+  for (const [cat, names] of Object.entries(WEAPON_CATEGORY_MAP)) {
+    if (names.some((n) => n.toLowerCase() === lower)) return cat;
+  }
+  return "기타";
+}
+
+export interface WeaponKillEntry {
+  internalName: string;
+  displayName: string;
+  category: string;
+  kills: number;
+}
+
+export interface WeaponStats {
+  byCategory: Record<string, number>;
+  topWeapons: WeaponKillEntry[];
+  totalTracked: number;
+  matchesAnalyzed: number;
+}
+
+async function fetchTelemetryUrl(matchId: string, shard: string): Promise<string | null> {
+  try {
+    const res = await pubgFetch(`${BASE}/${shard}/matches/${matchId}`, {
+      next: { revalidate: 86400 },
+    } as RequestInit);
+    if (!res.ok) return null;
+    const json = await res.json();
+    const asset = (json.included ?? []).find(
+      (x: { type: string }) => x.type === "asset"
+    ) as { attributes: { URL: string } } | undefined;
+    return asset?.attributes?.URL ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchKillWeapons(telemetryUrl: string, accountId: string): Promise<string[]> {
+  try {
+    const res = await fetch(telemetryUrl, {
+      next: { revalidate: 86400 },
+    } as RequestInit);
+    if (!res.ok) return [];
+    const events = await res.json() as Array<{
+      _T: string;
+      killer?: { accountId: string };
+      killerDamageInfo?: { damageCauserName: string };
+    }>;
+    return events
+      .filter(
+        (e) =>
+          e._T === "LogPlayerKillV2" &&
+          e.killer?.accountId === accountId &&
+          !!e.killerDamageInfo?.damageCauserName
+      )
+      .map((e) => e.killerDamageInfo!.damageCauserName);
+  } catch {
+    return [];
+  }
+}
+
+export async function getWeaponStats(accountId: string, shard = "steam"): Promise<WeaponStats> {
+  const MAX_MATCHES = 3;
+
+  const player = await getPlayerById(accountId, shard);
+  const matchIds: string[] = (player.relationships?.matches?.data ?? [])
+    .slice(0, MAX_MATCHES)
+    .map((m: { id: string }) => m.id);
+
+  if (matchIds.length === 0) {
+    return { byCategory: {}, topWeapons: [], totalTracked: 0, matchesAnalyzed: 0 };
+  }
+
+  const urlResults = await Promise.allSettled(
+    matchIds.map((id) => fetchTelemetryUrl(id, shard))
+  );
+  const telemetryUrls = urlResults
+    .map((r) => (r.status === "fulfilled" ? r.value : null))
+    .filter(Boolean) as string[];
+
+  const killResults = await Promise.allSettled(
+    telemetryUrls.map((url) => fetchKillWeapons(url, accountId))
+  );
+  const allWeapons = killResults.flatMap((r) =>
+    r.status === "fulfilled" ? r.value : []
+  );
+
+  const byCategory: Record<string, number> = { AR: 0, SMG: 0, DMR: 0, SR: 0, Throwable: 0, 기타: 0 };
+  const weaponCounts = new Map<string, number>();
+
+  for (const raw of allWeapons) {
+    const internal = extractInternalName(raw);
+    const cat = categorizeWeapon(internal);
+    byCategory[cat] = (byCategory[cat] ?? 0) + 1;
+    weaponCounts.set(internal, (weaponCounts.get(internal) ?? 0) + 1);
+  }
+
+  const topWeapons: WeaponKillEntry[] = Array.from(weaponCounts.entries())
+    .map(([internal, kills]) => ({
+      internalName: internal,
+      displayName: WEAPON_DISPLAY_MAP[internal] ?? internal,
+      category: categorizeWeapon(internal),
+      kills,
+    }))
+    .sort((a, b) => b.kills - a.kills)
+    .slice(0, 8);
+
+  return {
+    byCategory,
+    topWeapons,
+    totalTracked: allWeapons.length,
+    matchesAnalyzed: telemetryUrls.length,
+  };
+}
