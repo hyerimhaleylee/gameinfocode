@@ -399,6 +399,7 @@ export interface WeaponStats {
   topWeapons: WeaponKillEntry[];
   totalTracked: number;
   matchesAnalyzed: number;
+  cachedMatchCount?: number; // previously seen match IDs loaded from Redis history
 }
 
 async function fetchTelemetryUrl(matchId: string, shard: string): Promise<string | null> {
@@ -534,11 +535,26 @@ export async function getWeaponMastery(accountId: string, shard = "steam"): Prom
 
 export async function getWeaponStats(accountId: string, shard = "steam"): Promise<WeaponStats> {
   const MAX_MATCHES = 20;
+  const MAX_HISTORY = 200;
+  const HISTORY_KEY = `player:match-history:${accountId}`;
 
   const player = await getPlayerById(accountId, shard);
-  const matchIds: string[] = (player.relationships?.matches?.data ?? [])
+  const freshIds: string[] = (player.relationships?.matches?.data ?? [])
     .slice(0, MAX_MATCHES)
     .map((m: { id: string }) => m.id);
+
+  // Merge fresh IDs with Redis-stored history, deduplicate, cap at MAX_HISTORY
+  let matchIds = freshIds;
+  let cachedCount = 0;
+  if (redis) {
+    try {
+      const stored = await redis.get<string[]>(HISTORY_KEY);
+      const merged = [...new Set([...freshIds, ...(stored ?? [])])].slice(0, MAX_HISTORY);
+      cachedCount = merged.length - freshIds.length;
+      matchIds = merged;
+      await redis.set(HISTORY_KEY, merged);
+    } catch { /* Redis error — proceed with fresh only */ }
+  }
 
   if (matchIds.length === 0) {
     return { byCategory: {}, topWeapons: [], totalTracked: 0, matchesAnalyzed: 0 };
@@ -583,5 +599,6 @@ export async function getWeaponStats(accountId: string, shard = "steam"): Promis
     topWeapons,
     totalTracked: allWeapons.length,
     matchesAnalyzed: telemetryEntries.length,
+    cachedMatchCount: cachedCount,
   };
 }
