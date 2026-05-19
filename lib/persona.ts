@@ -251,7 +251,17 @@ const PERSONA_DEFS: Array<{
     tier: "DIAMOND",
     match: (s) => s.kd >= 3.5 && s.winRate >= 10 && s.avgDamage >= 350,
   },
-  // 2. 에임만 신 — KD≥2.0 + 어시/게임<0.8 + 평딜≥220 (+nearPct≥55% if weapon data)
+  // 2. 전장의 지배자 — KD≥2.0 + 부활/게임≥0.4
+  {
+    id: "warlord",
+    title: "전장의 지배자, 불멸의 수호신",
+    titleEn: "LORD OF BATTLEFIELD",
+    quote: "총구는 적을 향하고, 손은 동료를 향한다. 살육과 구원을 동시에 행하는 자, 이 전장에서 그는 신과 다름없다.",
+    type: "IMMORTAL GUARDIAN",
+    tier: "DIAMOND",
+    match: (s) => s.kd >= 2.0 && s.revivesPerGame >= 0.4,
+  },
+  // 3. 에임만 신 — KD≥2.0 + 어시/게임<0.8 + 평딜≥220 (+nearPct≥55% if weapon data)
   {
     id: "aim_god",
     title: "에임만 신, 뇌는 장식",

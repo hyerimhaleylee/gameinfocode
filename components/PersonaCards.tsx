@@ -14,6 +14,15 @@ const PERSONAS = [
     stats: { Combat: 95, Survival: 90, Mobility: 80, Squadplay: 75, Consistency: 92, Adaptability: 88 },
   },
   {
+    id: "warlord",
+    title: "전장의 지배자, 불멸의 수호신",
+    subtitle: "LORD OF BATTLEFIELD",
+    desc: "총구는 적을 향하고, 손은 동료를 향한다. 살육과 구원을 동시에 행하는 자, 이 전장에서 그는 신과 다름없다.",
+    comment: "적은 내가 죽이고, 팀원은 내가 살린다",
+    color: "blue" as const,
+    stats: { Combat: 92, Survival: 85, Mobility: 75, Squadplay: 88, Consistency: 88, Adaptability: 85 },
+  },
+  {
     id: "aim_god",
     title: "에임만 신, 뇌는 장식",
     subtitle: "AIM GOD, BRAIN OPTIONAL",
