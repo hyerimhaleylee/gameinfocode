@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+
+export const maxDuration = 60;
 import { findPlayerBulk, getSeasonStats, getSeasonsList, getLifetimeStats, getCurrentSeason, getRankedSeasonStats, getWeaponStats } from "@/lib/pubg";
 import {
   extractBestModeStats,
@@ -79,8 +81,11 @@ export async function GET(req: NextRequest) {
       shard = foundShard;
     }
 
-    // Start weapon stats in background immediately — runs parallel to season logic
-    const weaponStatsPromise = getWeaponStats(accountId, shard).catch(() => null);
+    // Start weapon stats in background — runs parallel to season logic, 8s timeout
+    const weaponStatsPromise = Promise.race([
+      getWeaponStats(accountId, shard).catch(() => null),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000)),
+    ]);
 
     let gameModeStats: Record<string, RawModeStats>;
     let seasonId: string;

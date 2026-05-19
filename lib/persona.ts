@@ -305,7 +305,7 @@ const PERSONA_DEFS: Array<{
     tier: "GOLD",
     match: (s) => s.kda >= 2.0 && s.assistsPerGame >= 0.45 && s.kd >= 1.7,
   },
-  // 7. 나만 살면 돼 — 부활/게임<0.30 + KD≥1.4 + 승률≥2% (+farPct≥35% if weapon data, else 생존시간≥15분)
+  // 7. 나만 살면 돼 — 부활/게임<0.35 + KD≥1.4 + 승률≥2% (+farPct≥30% if weapon data)
   {
     id: "lone",
     title: "나만 살면 돼",
@@ -314,8 +314,8 @@ const PERSONA_DEFS: Array<{
     type: "LONE WOLF",
     tier: "SILVER",
     match: (s, wr) =>
-      s.revivesPerGame < 0.30 && s.kd >= 1.4 && s.winRate >= 2 &&
-      (wr !== null ? wr.farPct >= 35 : s.avgSurvivalMin >= 15),
+      s.revivesPerGame < 0.35 && s.kd >= 1.4 && s.winRate >= 2 &&
+      (wr !== null ? wr.farPct >= 30 : true),
   },
   // 8. 돌격대장 — KD≥1.4 + 평딜≥200 (+nearPct≥50% if weapon data, else 생존시간<17분)
   {
