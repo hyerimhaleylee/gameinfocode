@@ -34,14 +34,14 @@ export default function Navbar({ onReset }: { onReset?: () => void }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <button onClick={onReset} className="flex items-center gap-2 group">
+          <Link href="/" onClick={onReset} className="flex items-center gap-2 group">
             <div className="w-7 h-7 border border-cyan-400/60 flex items-center justify-center">
               <div className="w-3 h-3 bg-cyan-400" style={{ clipPath: "polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)" }} />
             </div>
             <span className="text-lg font-bold tracking-[0.2em] text-white">
               GAME<span className="text-cyan-400 neon-text-cyan">CODE</span>
             </span>
-          </button>
+          </Link>
 
           {/* Desktop menu */}
           <div className="hidden md:flex items-center gap-8">
