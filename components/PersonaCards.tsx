@@ -6,7 +6,7 @@ import MiniRadarChart from "./MiniRadarChart";
 const PERSONAS = [
   {
     id: "perfect",
-    title: "완성형 인간",
+    title: "완성형 인간, 인간의 탈을 쓴 무언가",
     subtitle: "PERFECT HUMAN",
     desc: "KD 3.5 이상, 승률 10% 이상, 평균 딜량 350 이상. 이 게임에 뭔가 문제가 있거나 당신이 특별한 것이다.",
     comment: "이 게임이 잘못된 건지, 당신이 너무 잘하는 건지. 어쨌든 당신 앞에 서면 다들 죽는다.",
@@ -24,7 +24,7 @@ const PERSONAS = [
   },
   {
     id: "aim_god",
-    title: "에임만 신, 뇌는 장식",
+    title: "에임만 신, 뇌는 그냥 장식품",
     subtitle: "AIM GOD, BRAIN OPTIONAL",
     desc: "KD 2.0 이상, 딜량 220 이상이지만 어시스트가 게임당 0.8 미만. 에임은 타고났지만 팀플은 개발 중.",
     comment: "방아쇠만 당기면 된다. 나머지는... 팀원이 알아서 하겠지.",
@@ -33,7 +33,7 @@ const PERSONAS = [
   },
   {
     id: "sniper",
-    title: "저격의 신",
+    title: "저격의 신, 스코프 너머의 사형선고",
     subtitle: "GOD OF SNIPING",
     desc: "헤드샷 비율 30% 이상, KD 1.8 이상. 스코프 안에 들어오면 이미 게임 오버.",
     comment: "스코프 안에 들어온 순간, 이미 당신은 죽었다.",
@@ -42,7 +42,7 @@ const PERSONAS = [
   },
   {
     id: "savior",
-    title: "팀의 구원자",
+    title: "팀의 구원자, 쓰러진 자를 일으키는 손",
     subtitle: "TEAM SAVIOR",
     desc: "KD 1.2 미만이지만 게임당 부활 0.25회, 어시스트 0.4회 이상. 팀원이 쓰러지면 반드시 일으킨다.",
     comment: "내가 살아있는 한, 팀원도 살아있다. 이게 내 전쟁이다.",
@@ -51,7 +51,7 @@ const PERSONAS = [
   },
   {
     id: "zone_master",
-    title: "자기장 마스터",
+    title: "자기장 마스터, 싸움 없이 이기는 자",
     subtitle: "ZONE MASTER",
     desc: "승률 8% 이상, 평균 생존 22분 이상. 자기장과 함께 춤을 추는 생존의 달인.",
     comment: "싸움은 안 한다. 자기장이 알아서 죽여주기 때문이다.",
@@ -60,7 +60,7 @@ const PERSONAS = [
   },
   {
     id: "assault",
-    title: "돌격대장",
+    title: "돌격대장, 생각보다 총구가 먼저",
     subtitle: "ASSAULT COMMANDER",
     desc: "KD 1.4 이상, 평균 딜량 200 이상, 근거리 교전 선호. 처음 접선에서 결판을 낸다.",
     comment: "생각은 나중에. 일단 들어가고 본다. 안 되면 그때 생각한다.",
@@ -69,7 +69,7 @@ const PERSONAS = [
   },
   {
     id: "sense",
-    title: "센스쟁이",
+    title: "센스쟁이, 게임을 읽는 눈을 가진 자",
     subtitle: "SENSE MASTER",
     desc: "KDA 2.2 이상, 어시스트 0.5회 이상, KD 1.7 이상, 평딜 220 이상. 팀 전체를 읽는 게임 IQ의 소유자.",
     comment: "나 혼자 잘해봤자 지는 게임. 팀 전체를 이기게 하는 게 진짜 실력이다.",
@@ -78,7 +78,7 @@ const PERSONAS = [
   },
   {
     id: "camper",
-    title: "존버황제",
+    title: "존버황제, 총소리 나면 일단 숨는다",
     subtitle: "KING OF CAMPING",
     desc: "TOP 10 진입률 38% 이상이지만 KD 1.0 미만, 평딜 150 미만. 싸움보다는 생존이 목표.",
     comment: "총소리가 나면 숨는다. 자기장이 오면 피한다. 그게 전략의 전부다.",
@@ -87,7 +87,7 @@ const PERSONAS = [
   },
   {
     id: "vehicle",
-    title: "탈것 장인",
+    title: "탈것 장인, 바퀴가 곧 무기다",
     subtitle: "VEHICLE MASTER",
     desc: "게임당 주행거리 2500m 이상, KD 1.0 이상. 바퀴가 네 개면 그게 곧 무기다.",
     comment: "두 발로 뛰는 건 시간 낭비다. 네 바퀴면 모든 게 해결된다.",
@@ -96,7 +96,7 @@ const PERSONAS = [
   },
   {
     id: "lone",
-    title: "나만 살면 돼",
+    title: "나만 살면 돼, 팀원은 그냥 구경꾼",
     subtitle: "LONE SURVIVOR",
     desc: "KD 1.4 이상, 승률 2% 이상이지만 부활 빈도가 낮다. 팀원 걱정보다 내 생존이 우선.",
     comment: "팀원이 쓰러졌다. 나는 계속 달린다. 미안하진 않다.",
@@ -105,7 +105,7 @@ const PERSONAS = [
   },
   {
     id: "barefoot",
-    title: "맨발의 사나이",
+    title: "맨발의 사나이, 두 다리로 전장을 누비는 자",
     subtitle: "BAREFOOT WARRIOR",
     desc: "게임당 도보 이동거리 3500m 이상, 주행거리 800m 미만. 두 발로 전장을 누빈다.",
     comment: "차? 그게 뭔데. 두 다리면 충분하다.",
@@ -114,7 +114,7 @@ const PERSONAS = [
   },
   {
     id: "marathon",
-    title: "마라톤선수",
+    title: "마라톤선수, 킬보다 거리가 더 중요한 자",
     subtitle: "MARATHON RUNNER",
     desc: "도보 이동거리 4500m 이상, KD 1.0 미만. 싸움은 못 하지만 달리기는 남다르다.",
     comment: "킬보다 뛰는 게 더 재밌다. 총은 보조 수단일 뿐이다.",
@@ -123,7 +123,7 @@ const PERSONAS = [
   },
   {
     id: "grinder",
-    title: "성실한 삽질러",
+    title: "성실한 삽질러, 오늘도 내일도 지지만 멈추지 않는다",
     subtitle: "DEDICATED GRINDER",
     desc: "총 게임 수 100판 이상, KD 1.0 미만. 못해도 끝까지 한다. 그게 이 게임이다.",
     comment: "100판을 해도 아직 모르겠다. 그래도 내일 또 할 거다.",
@@ -132,7 +132,7 @@ const PERSONAS = [
   },
   {
     id: "rookie",
-    title: "4렙 가방",
+    title: "4렙 가방, 아이템은 만렙 전투력은 1렙",
     subtitle: "LVL4 BACKPACK",
     desc: "아직 모든 것이 성장 중인 초보 플레이어. 하지만 시작했다는 것만으로도 충분하다.",
     comment: "아이템은 잘 모은다. 그걸 어떻게 쓰는지가... 아직 연구 중이다.",

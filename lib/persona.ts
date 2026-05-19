@@ -246,7 +246,7 @@ const PERSONA_DEFS: Array<{
   // 1. 완성형
   {
     id: "perfect",
-    title: "완성형 인간",
+    title: "완성형 인간, 인간의 탈을 쓴 무언가",
     titleEn: "PERFECT HUMAN",
     quote: "이 게임이 잘못된 건지, 당신이 너무 잘하는 건지. 어쨌든 당신 앞에 서면 다들 죽는다.",
     type: "APEX PREDATOR",
@@ -268,7 +268,7 @@ const PERSONA_DEFS: Array<{
   // 3. 에임만 신 — KD≥2.0 + 어시/게임<0.8 + 평딜≥220 (+nearPct≥55% if weapon data)
   {
     id: "aim_god",
-    title: "에임만 신, 뇌는 장식",
+    title: "에임만 신, 뇌는 그냥 장식품",
     titleEn: "AIM GOD, BRAIN OPTIONAL",
     quote: "방아쇠만 당기면 된다. 나머지는... 팀원이 알아서 하겠지.",
     type: "MECHANICAL GENIUS",
@@ -281,7 +281,7 @@ const PERSONA_DEFS: Array<{
   // 4. 저격의 신 — HS%≥30% + KD≥1.8 (+farPct≥40% if weapon data)
   {
     id: "sniper",
-    title: "저격의 신",
+    title: "저격의 신, 스코프 너머의 사형선고",
     titleEn: "GOD OF SNIPING",
     quote: "스코프 안에 들어온 순간, 이미 당신은 죽었다.",
     type: "PRECISION MARKSMAN",
@@ -294,7 +294,7 @@ const PERSONA_DEFS: Array<{
   // 5. 팀의 구원자 — KD<1.2 + 부활/게임≥0.25 + 어시/게임≥0.4
   {
     id: "savior",
-    title: "팀의 구원자",
+    title: "팀의 구원자, 쓰러진 자를 일으키는 손",
     titleEn: "TEAM SAVIOR",
     quote: "내가 살아있는 한, 팀원도 살아있다. 이게 내 전쟁이다.",
     type: "TACTICAL SUPPORT",
@@ -305,7 +305,7 @@ const PERSONA_DEFS: Array<{
   // 6. 자기장 마스터
   {
     id: "zone_master",
-    title: "자기장 마스터",
+    title: "자기장 마스터, 싸움 없이 이기는 자",
     titleEn: "ZONE MASTER",
     quote: "싸움은 안 한다. 자기장이 알아서 죽여주기 때문이다.",
     type: "SURVIVAL SPECIALIST",
@@ -316,7 +316,7 @@ const PERSONA_DEFS: Array<{
   // 7. 센스쟁이 — KDA≥2.2 + 어시/게임≥0.5 + KD≥1.7 + 평딜≥220
   {
     id: "sense",
-    title: "센스쟁이",
+    title: "센스쟁이, 게임을 읽는 눈을 가진 자",
     titleEn: "SENSE MASTER",
     quote: "나 혼자 잘해봤자 지는 게임. 팀 전체를 이기게 하는 게 진짜 실력이다.",
     type: "IQ PLAYER",
@@ -327,7 +327,7 @@ const PERSONA_DEFS: Array<{
   // 8. 나만 살면 돼 — 부활/게임<0.35 + KD≥1.4 + 승률≥2% (+farPct≥30% if weapon data)
   {
     id: "lone",
-    title: "나만 살면 돼",
+    title: "나만 살면 돼, 팀원은 그냥 구경꾼",
     titleEn: "LONE SURVIVOR",
     quote: "팀원이 쓰러졌다. 나는 계속 달린다. 미안하진 않다.",
     type: "LONE WOLF",
@@ -340,7 +340,7 @@ const PERSONA_DEFS: Array<{
   // 9. 돌격대장 — KD≥1.4 + 평딜≥200 (+nearPct≥50% if weapon data, else 생존시간<17분)
   {
     id: "assault",
-    title: "돌격대장",
+    title: "돌격대장, 생각보다 총구가 먼저",
     titleEn: "ASSAULT COMMANDER",
     quote: "생각은 나중에. 일단 들어가고 본다. 안 되면 그때 생각한다.",
     type: "AGGRESSIVE RIFLER",
@@ -353,7 +353,7 @@ const PERSONA_DEFS: Array<{
   // 10. 존버황제
   {
     id: "camper",
-    title: "존버황제",
+    title: "존버황제, 총소리 나면 일단 숨는다",
     titleEn: "KING OF CAMPING",
     quote: "총소리가 나면 숨는다. 자기장이 오면 피한다. 그게 전략의 전부다.",
     type: "PASSIVE SURVIVOR",
@@ -364,7 +364,7 @@ const PERSONA_DEFS: Array<{
   // 11. 탈것 장인
   {
     id: "vehicle",
-    title: "탈것 장인",
+    title: "탈것 장인, 바퀴가 곧 무기다",
     titleEn: "VEHICLE MASTER",
     quote: "두 발로 뛰는 건 시간 낭비다. 네 바퀴면 모든 게 해결된다.",
     type: "MOBILITY SPECIALIST",
@@ -375,7 +375,7 @@ const PERSONA_DEFS: Array<{
   // 12. 맨발의 사나이
   {
     id: "barefoot",
-    title: "맨발의 사나이",
+    title: "맨발의 사나이, 두 다리로 전장을 누비는 자",
     titleEn: "BAREFOOT WARRIOR",
     quote: "차? 그게 뭔데. 두 다리면 충분하다.",
     type: "GROUND OPERATOR",
@@ -386,7 +386,7 @@ const PERSONA_DEFS: Array<{
   // 13. 마라톤선수
   {
     id: "marathon",
-    title: "마라톤선수",
+    title: "마라톤선수, 킬보다 거리가 더 중요한 자",
     titleEn: "MARATHON RUNNER",
     quote: "킬보다 뛰는 게 더 재밌다. 총은 보조 수단일 뿐이다.",
     type: "DISTANCE WALKER",
@@ -397,7 +397,7 @@ const PERSONA_DEFS: Array<{
   // 14. 성실한 삽질러
   {
     id: "grinder",
-    title: "성실한 삽질러",
+    title: "성실한 삽질러, 오늘도 내일도 지지만 멈추지 않는다",
     titleEn: "DEDICATED GRINDER",
     quote: "100판을 해도 아직 모르겠다. 그래도 내일 또 할 거다.",
     type: "PERSISTENT PLAYER",
@@ -408,7 +408,7 @@ const PERSONA_DEFS: Array<{
   // 15. 4렙 가방 (fallback)
   {
     id: "rookie",
-    title: "4렙 가방",
+    title: "4렙 가방, 아이템은 만렙 전투력은 1렙",
     titleEn: "LVL4 BACKPACK",
     quote: "아이템은 잘 모은다. 그걸 어떻게 쓰는지가... 아직 연구 중이다.",
     type: "DEVELOPING WARRIOR",

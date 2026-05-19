@@ -12,9 +12,9 @@ const FALLBACK: PlayerApiResponse = {
   name: "Unknown_Player",
   kd: "—", kda: "—", winRate: "—", avgDamage: "—", headshot: "—", assistsPerGame: "—", revivesPerGame: "—", games: "—",
   persona: {
-    id: "rookie", title: "4렙 가방", titleEn: "LVL4 BACKPACK",
-    quote: "아직 가방만 레벨4다. 하지만 시작했다.",
-    type: "DEVELOPING WARRIOR", tier: "BRONZE",
+    id: "rookie", title: "4렙 가방, 아이템은 만렙 전투력은 1렙", titleEn: "LVL4 BACKPACK",
+    quote: "아이템은 잘 모은다. 그걸 어떻게 쓰는지가... 아직 연구 중이다.",
+    type: "DEVELOPING WARRIOR", tier: "BRONZE", conditionLabel: "분석 중...",
   },
   radarValues: [30, 30, 30, 30, 30, 30],
   insights: [], recommendation: "",
