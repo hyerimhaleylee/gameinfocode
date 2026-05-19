@@ -250,7 +250,7 @@ export async function getMatchHistory(
   maxMatches = 20
 ): Promise<MatchEntry[]> {
   const results: MatchEntry[] = [];
-  const batchSize = 5;
+  const batchSize = 7;
   for (let i = 0; i < matchIds.length && results.length < maxMatches; i += batchSize) {
     const batch = matchIds.slice(i, i + batchSize);
     const batchResults = await Promise.all(
@@ -259,6 +259,19 @@ export async function getMatchHistory(
     results.push(...batchResults.filter((r): r is MatchEntry => r !== null));
   }
   return results.slice(0, maxMatches);
+}
+
+export async function accumulateMatchIds(accountId: string, freshIds: string[], maxHistory = 200): Promise<string[]> {
+  const HISTORY_KEY = `player:match-history:${accountId}`;
+  if (!redis) return freshIds;
+  try {
+    const stored = await redis.get<string[]>(HISTORY_KEY);
+    const merged = [...new Set([...freshIds, ...(stored ?? [])])].slice(0, maxHistory);
+    await redis.set(HISTORY_KEY, merged);
+    return merged;
+  } catch {
+    return freshIds;
+  }
 }
 
 export async function getRankedSeasonStats(
@@ -572,7 +585,7 @@ export async function getWeaponMastery(accountId: string, shard = "steam"): Prom
       kills,
     }))
     .sort((a, b) => b.kills - a.kills)
-    .slice(0, 10);
+    .slice(0, 15);
 
   const { nearPct, farPct } = calcRangePcts(byCategory, totalTracked);
   return { byCategory, topWeapons, totalTracked, matchesAnalyzed: -1, nearPct, farPct };
@@ -589,17 +602,9 @@ export async function getWeaponStats(accountId: string, shard = "steam"): Promis
     .map((m: { id: string }) => m.id);
 
   // Merge fresh IDs with Redis-stored history, deduplicate, cap at MAX_HISTORY
-  let matchIds = freshIds;
-  let cachedCount = 0;
-  if (redis) {
-    try {
-      const stored = await redis.get<string[]>(HISTORY_KEY);
-      const merged = [...new Set([...freshIds, ...(stored ?? [])])].slice(0, MAX_HISTORY);
-      cachedCount = merged.length - freshIds.length;
-      matchIds = merged;
-      await redis.set(HISTORY_KEY, merged);
-    } catch { /* Redis error — proceed with fresh only */ }
-  }
+  const allMatchIds = await accumulateMatchIds(accountId, freshIds, MAX_HISTORY);
+  const cachedCount = allMatchIds.length - freshIds.length;
+  const matchIds = allMatchIds;
 
   if (matchIds.length === 0) {
     return { byCategory: {}, topWeapons: [], totalTracked: 0, matchesAnalyzed: 0, nearPct: 0, farPct: 0 };
@@ -637,7 +642,7 @@ export async function getWeaponStats(accountId: string, shard = "steam"): Promis
       kills,
     }))
     .sort((a, b) => b.kills - a.kills)
-    .slice(0, 8);
+    .slice(0, 15);
 
   const { nearPct, farPct } = calcRangePcts(byCategory, allWeapons.length);
   return {

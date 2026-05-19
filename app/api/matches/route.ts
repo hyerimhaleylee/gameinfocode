@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPlayerById, getMatchHistory } from "@/lib/pubg";
+import { getPlayerById, getMatchHistory, accumulateMatchIds } from "@/lib/pubg";
 
 export async function GET(req: NextRequest) {
   const accountId = req.nextUrl.searchParams.get("accountId");
@@ -11,11 +11,14 @@ export async function GET(req: NextRequest) {
 
   try {
     const player = await getPlayerById(accountId, shard);
-    const matchIds: string[] = (player.relationships?.matches?.data ?? []).map(
+    const freshIds: string[] = (player.relationships?.matches?.data ?? []).map(
       (m: { id: string }) => m.id
     );
 
-    if (matchIds.length === 0) return NextResponse.json([]);
+    if (freshIds.length === 0) return NextResponse.json([]);
+
+    // Accumulate match IDs in Redis so history grows with each visit (up to 100)
+    const matchIds = await accumulateMatchIds(accountId, freshIds, 100);
 
     const matches = await getMatchHistory(matchIds, accountId, shard, 20);
     return NextResponse.json(matches);

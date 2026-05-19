@@ -176,7 +176,7 @@ export default function WeaponTab({ accountId, shard }: Props) {
           ))}
         </div>
         <p className="text-slate-600 text-xs font-mono tracking-widest">무기 데이터 분석 중...</p>
-        <p className="text-slate-700 text-[10px] font-mono">텔레메트리 10판 + Weapon Mastery 동시 조회</p>
+        <p className="text-slate-700 text-[10px] font-mono">텔레메트리 최대 20판 + Weapon Mastery 동시 조회</p>
       </div>
     );
   }
@@ -200,7 +200,7 @@ export default function WeaponTab({ accountId, shard }: Props) {
         style={{ background: "rgba(255,255,255,0.02)" }}>
         {([
           { key: "mastery" as Source, label: "전체 기간", sub: "Weapon Mastery", available: !!(mastery && mastery.totalTracked > 0) },
-          { key: "telemetry" as Source, label: "최근 10판", sub: "텔레메트리", available: !!(telemetry && telemetry.totalTracked > 0) },
+          { key: "telemetry" as Source, label: "최근 20판", sub: "텔레메트리", available: !!(telemetry && telemetry.totalTracked > 0) },
         ]).map((opt) => (
           <button key={opt.key}
             onClick={() => opt.available && setSource(opt.key)}
