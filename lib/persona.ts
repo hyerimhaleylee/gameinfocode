@@ -303,7 +303,7 @@ const PERSONA_DEFS: Array<{
     quote: "팀이 잘 되면 나도 잘 된다",
     type: "IQ PLAYER",
     tier: "GOLD",
-    match: (s) => s.kda >= 2.0 && s.assistsPerGame >= 0.45 && s.kd >= 1.7,
+    match: (s) => s.kda >= 2.2 && s.assistsPerGame >= 0.5 && s.kd >= 1.7 && s.avgDamage >= 220,
   },
   // 7. 나만 살면 돼 — 부활/게임<0.35 + KD≥1.4 + 승률≥2% (+farPct≥30% if weapon data)
   {

@@ -62,7 +62,7 @@ const PERSONAS = [
     id: "sense",
     title: "센스쟁이",
     subtitle: "SENSE MASTER",
-    desc: "KDA 2.0 이상, 어시스트 0.45회 이상, KD 1.7 이상. 팀 전체를 읽는 게임 IQ의 소유자.",
+    desc: "KDA 2.2 이상, 어시스트 0.5회 이상, KD 1.7 이상, 평딜 220 이상. 팀 전체를 읽는 게임 IQ의 소유자.",
     comment: "팀이 잘 되면 나도 잘 된다",
     color: "cyan" as const,
     stats: { Combat: 70, Survival: 72, Mobility: 68, Squadplay: 92, Consistency: 78, Adaptability: 82 },

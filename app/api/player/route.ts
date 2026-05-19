@@ -113,15 +113,29 @@ export async function GET(req: NextRequest) {
     } else if (!seasonParam) {
       // Auto-detect: try most recent 3 seasons sequentially, stop at first with records
       const seasonList = await getSeasonsList(shard);
-      const candidates = seasonList.slice(0, 3);
-
       let foundSeason: { id: string; stats: Record<string, RawModeStats> } | null = null;
-      for (const s of candidates) {
+
+      for (const s of seasonList.slice(0, 3)) {
         try {
           const data = await getSeasonStats(accountId, s.id, shard);
           const stats = data.data.attributes.gameModeStats as Record<string, RawModeStats>;
           if (totalGamesIn(stats) > 0) { foundSeason = { id: s.id, stats }; break; }
         } catch { /* try next */ }
+      }
+
+      if (!foundSeason) {
+        const results = await Promise.allSettled(
+          seasonList.slice(3, 8).map(s =>
+            getSeasonStats(accountId, s.id, shard)
+              .then(data => ({ id: s.id, stats: data.data.attributes.gameModeStats as Record<string, RawModeStats> }))
+          )
+        );
+        for (const r of results) {
+          if (r.status === "fulfilled" && totalGamesIn(r.value.stats) > 0) {
+            foundSeason = r.value;
+            break;
+          }
+        }
       }
 
       if (foundSeason) {
