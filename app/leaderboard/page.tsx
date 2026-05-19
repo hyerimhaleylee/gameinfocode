@@ -15,6 +15,12 @@ const MODES = [
   { key: "duo",      label: "듀오 3인칭" },
 ];
 
+const REGIONS = [
+  { key: "pc-as", label: "아시아" },
+  { key: "pc-na", label: "북미" },
+  { key: "pc-eu", label: "유럽" },
+];
+
 const RANK_COLORS: Record<number, { text: string; glow: string }> = {
   1: { text: "#facc15", glow: "rgba(250,204,21,0.4)" },
   2: { text: "#e2e8f0", glow: "rgba(226,232,240,0.3)" },
@@ -48,6 +54,7 @@ export default function LeaderboardPage() {
   const [seasons, setSeasons] = useState<SeasonTab[]>([]);
   const [activeSeason, setActiveSeason] = useState<string>("");
   const [activeMode, setActiveMode] = useState("squad-fpp");
+  const [activeRegion, setActiveRegion] = useState("pc-as");
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,12 +72,12 @@ export default function LeaderboardPage() {
       .catch(() => {});
   }, []);
 
-  const fetchLeaderboard = useCallback(async (season: string, mode: string) => {
+  const fetchLeaderboard = useCallback(async (season: string, mode: string, region: string) => {
     if (!season) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/leaderboard?season=${encodeURIComponent(season)}&mode=${encodeURIComponent(mode)}`);
+      const res = await fetch(`/api/leaderboard?season=${encodeURIComponent(season)}&mode=${encodeURIComponent(mode)}&region=${encodeURIComponent(region)}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "리더보드 조회 오류");
       setEntries(Array.isArray(data) ? data : []);
@@ -83,12 +90,17 @@ export default function LeaderboardPage() {
   }, []);
 
   useEffect(() => {
-    if (activeSeason) fetchLeaderboard(activeSeason, activeMode);
-  }, [activeSeason, activeMode, fetchLeaderboard]);
+    if (activeSeason) fetchLeaderboard(activeSeason, activeMode, activeRegion);
+  }, [activeSeason, activeMode, activeRegion, fetchLeaderboard]);
 
   const handleModeChange = (mode: string) => {
     if (mode === activeMode || loading) return;
     setActiveMode(mode);
+  };
+
+  const handleRegionChange = (region: string) => {
+    if (region === activeRegion || loading) return;
+    setActiveRegion(region);
   };
 
   const handleSeasonChange = (id: string) => {
@@ -129,6 +141,22 @@ export default function LeaderboardPage() {
             ))}
           </motion.div>
         )}
+
+        {/* Region Tabs */}
+        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}
+          className="mb-4 flex items-center gap-2 flex-wrap">
+          <span className="text-[10px] font-mono text-slate-600 tracking-widest mr-1">REGION</span>
+          {REGIONS.map((r) => (
+            <button key={r.key} onClick={() => handleRegionChange(r.key)} disabled={loading}
+              className={`px-3 py-1 text-[10px] font-mono tracking-wider border transition-all rounded-sm ${
+                activeRegion === r.key
+                  ? "border-violet-400/60 text-violet-300 bg-violet-500/10"
+                  : "border-white/10 text-slate-500 hover:border-slate-400/30 hover:text-slate-300"
+              } ${loading ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}>
+              {r.label}
+            </button>
+          ))}
+        </motion.div>
 
         {/* Mode Tabs */}
         <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
