@@ -44,7 +44,7 @@ const PERSONAS = [
     id: "savior",
     title: "팀의 구원자, 쓰러진 자를 일으키는 손",
     subtitle: "TEAM SAVIOR",
-    desc: "KD 1.2 미만이지만 게임당 부활 0.25회, 어시스트 0.4회 이상. 팀원이 쓰러지면 반드시 일으킨다.",
+    desc: "KD 1.5 미만이지만 게임당 부활 0.4회 이상. 팀원이 쓰러지면 반드시 일으킨다.",
     comment: "내가 살아있는 한, 팀원도 살아있다. 이게 내 전쟁이다.",
     color: "purple" as const,
     stats: { Combat: 50, Survival: 75, Mobility: 70, Squadplay: 96, Consistency: 72, Adaptability: 68 },

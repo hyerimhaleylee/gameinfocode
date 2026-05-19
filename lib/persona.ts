@@ -299,8 +299,8 @@ const PERSONA_DEFS: Array<{
     quote: "내가 살아있는 한, 팀원도 살아있다. 이게 내 전쟁이다.",
     type: "TACTICAL SUPPORT",
     tier: "SILVER",
-    conditionLabel: "KD 1.2↓ · 부활 0.25↑/게임 · 어시스트 0.4↑/게임",
-    match: (s) => s.kd < 1.2 && s.revivesPerGame >= 0.25 && s.assistsPerGame >= 0.4,
+    conditionLabel: "KD 1.5↓ · 부활 0.4↑/게임",
+    match: (s) => s.kd < 1.5 && s.revivesPerGame >= 0.4,
   },
   // 6. 자기장 마스터
   {
