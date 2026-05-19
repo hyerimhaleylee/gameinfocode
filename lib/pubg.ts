@@ -34,19 +34,31 @@ function makeHeaders(key: string): HeadersInit {
 
 async function pubgFetch(url: string, init: RequestInit = {}): Promise<Response> {
   const keys = getApiKeys();
-  const key = pickKey(keys);
-  const res = await fetch(url, { ...init, headers: makeHeaders(key) });
-  if (res.status === 429) {
-    // Immediately try next key before falling back to sleep
-    if (keys.length > 1) {
-      const nextKey = pickKey(keys);
-      const retry = await fetch(url, { ...init, headers: makeHeaders(nextKey) });
-      if (retry.status !== 429) return retry;
+  let lastRes: Response | null = null;
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const key = pickKey(keys);
+    const res = await fetch(url, { ...init, headers: makeHeaders(key) });
+    lastRes = res;
+
+    if (res.status === 429) {
+      // Try next key first, then sleep
+      if (keys.length > 1) {
+        const retry = await fetch(url, { ...init, headers: makeHeaders(pickKey(keys)) });
+        if (retry.status !== 429) return retry;
+      }
+      await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
+      continue;
     }
-    await new Promise((r) => setTimeout(r, 2500));
-    return fetch(url, { ...init, headers: makeHeaders(pickKey(keys)) });
+
+    if (res.status >= 500 && attempt < 2) {
+      await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+      continue;
+    }
+
+    return res;
   }
-  return res;
+  return lastRes!;
 }
 
 export async function findPlayer(name: string, shard = "steam") {
