@@ -262,8 +262,8 @@ const PERSONA_DEFS: Array<{
     quote: "총구는 적을 향하고, 손은 동료를 향한다. 살육과 구원을 동시에 행하는 자, 이 전장에서 그는 신과 다름없다.",
     type: "IMMORTAL GUARDIAN",
     tier: "DIAMOND",
-    conditionLabel: "KD 2.0↑ · 부활 0.4↑/게임",
-    match: (s) => s.kd >= 2.0 && s.revivesPerGame >= 0.4,
+    conditionLabel: "KD 1.9↑ · 부활 0.4↑/게임",
+    match: (s) => s.kd >= 1.9 && s.revivesPerGame >= 0.4,
   },
   // 3. 에임만 신 — KD≥2.0 + 어시/게임<0.8 + 평딜≥220 (+nearPct≥55% if weapon data)
   {
