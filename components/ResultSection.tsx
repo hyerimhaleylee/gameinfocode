@@ -486,6 +486,12 @@ export default function ResultSection({ playerName, playerData, fetchError, seas
                       <span className="w-1 h-1 rounded-full bg-violet-400" />
                       <span className="text-[11px] font-mono font-semibold tracking-widest text-violet-300">{d.persona.type}</span>
                     </div>
+                    {d.persona.conditionLabel && (
+                      <div className="mt-2 flex items-center gap-1.5">
+                        <span className="text-[9px] font-mono text-slate-600 tracking-widest">// 판정 조건</span>
+                        <span className="text-[10px] font-mono text-slate-500">{d.persona.conditionLabel}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Right: stats */}

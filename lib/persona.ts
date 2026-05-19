@@ -66,6 +66,7 @@ export interface Persona {
   quote: string;
   type: string;
   tier: string;
+  conditionLabel: string;
 }
 
 export interface RankedTier {
@@ -239,6 +240,7 @@ const PERSONA_DEFS: Array<{
   quote: string;
   type: string;
   tier: string;
+  conditionLabel: string;
   match: (s: ProcessedStats, wr: WeaponRatio | null) => boolean;
 }> = [
   // 1. 완성형
@@ -246,9 +248,10 @@ const PERSONA_DEFS: Array<{
     id: "perfect",
     title: "완성형 인간",
     titleEn: "PERFECT HUMAN",
-    quote: "이 사람 핵 아니에요?",
+    quote: "이 게임이 잘못된 건지, 당신이 너무 잘하는 건지. 어쨌든 당신 앞에 서면 다들 죽는다.",
     type: "APEX PREDATOR",
     tier: "DIAMOND",
+    conditionLabel: "KD 3.5↑ · 승률 10%↑ · 평딜 350↑",
     match: (s) => s.kd >= 3.5 && s.winRate >= 10 && s.avgDamage >= 350,
   },
   // 2. 전장의 지배자 — KD≥2.0 + 부활/게임≥0.4
@@ -259,6 +262,7 @@ const PERSONA_DEFS: Array<{
     quote: "총구는 적을 향하고, 손은 동료를 향한다. 살육과 구원을 동시에 행하는 자, 이 전장에서 그는 신과 다름없다.",
     type: "IMMORTAL GUARDIAN",
     tier: "DIAMOND",
+    conditionLabel: "KD 2.0↑ · 부활 0.4↑/게임",
     match: (s) => s.kd >= 2.0 && s.revivesPerGame >= 0.4,
   },
   // 3. 에임만 신 — KD≥2.0 + 어시/게임<0.8 + 평딜≥220 (+nearPct≥55% if weapon data)
@@ -266,137 +270,150 @@ const PERSONA_DEFS: Array<{
     id: "aim_god",
     title: "에임만 신, 뇌는 장식",
     titleEn: "AIM GOD, BRAIN OPTIONAL",
-    quote: "총은 신이 주셨는데 판단은 안 주셨다",
+    quote: "방아쇠만 당기면 된다. 나머지는... 팀원이 알아서 하겠지.",
     type: "MECHANICAL GENIUS",
     tier: "GOLD",
+    conditionLabel: "KD 2.0↑ · 평딜 220↑ · 어시스트 0.8↓/게임",
     match: (s, wr) =>
       s.kd >= 2.0 && s.assistsPerGame < 0.8 && s.avgDamage >= 220 &&
       (wr !== null ? wr.nearPct >= 55 : true),
   },
-  // 3. 저격의 신 — HS%≥30% + KD≥1.8 (+farPct≥40% if weapon data)
+  // 4. 저격의 신 — HS%≥30% + KD≥1.8 (+farPct≥40% if weapon data)
   {
     id: "sniper",
     title: "저격의 신",
     titleEn: "GOD OF SNIPING",
-    quote: "보이면 죽는다",
+    quote: "스코프 안에 들어온 순간, 이미 당신은 죽었다.",
     type: "PRECISION MARKSMAN",
     tier: "GOLD",
+    conditionLabel: "헤드샷 30%↑ · KD 1.8↑",
     match: (s, wr) =>
       s.headshotRate >= 30 && s.kd >= 1.8 &&
       (wr === null || wr.farPct >= 40),
   },
-  // 4. 팀의 구원자 — KD<1.2 + 부활/게임≥0.25 + 어시/게임≥0.4 (실력보다 팀기여 우선하는 서포터)
+  // 5. 팀의 구원자 — KD<1.2 + 부활/게임≥0.25 + 어시/게임≥0.4
   {
     id: "savior",
     title: "팀의 구원자",
     titleEn: "TEAM SAVIOR",
-    quote: "팀원이 쓰러지면 내 심장도 쓰러진다",
+    quote: "내가 살아있는 한, 팀원도 살아있다. 이게 내 전쟁이다.",
     type: "TACTICAL SUPPORT",
     tier: "SILVER",
+    conditionLabel: "KD 1.2↓ · 부활 0.25↑/게임 · 어시스트 0.4↑/게임",
     match: (s) => s.kd < 1.2 && s.revivesPerGame >= 0.25 && s.assistsPerGame >= 0.4,
   },
-  // 5. 자기장 마스터
+  // 6. 자기장 마스터
   {
     id: "zone_master",
     title: "자기장 마스터",
     titleEn: "ZONE MASTER",
-    quote: "자기장이 나를 위해 움직인다",
+    quote: "싸움은 안 한다. 자기장이 알아서 죽여주기 때문이다.",
     type: "SURVIVAL SPECIALIST",
     tier: "GOLD",
+    conditionLabel: "승률 8%↑ · 평균 생존 22분↑ · KD 1.0↑",
     match: (s) => s.winRate >= 8 && s.avgSurvivalMin >= 22 && s.kd >= 1.0,
   },
-  // 6. 센스쟁이 — KDA≥2.0 + 어시/게임≥0.45 + KD≥1.7 (고KD+팀기여 동시 충족하는 올라운더)
+  // 7. 센스쟁이 — KDA≥2.2 + 어시/게임≥0.5 + KD≥1.7 + 평딜≥220
   {
     id: "sense",
     title: "센스쟁이",
     titleEn: "SENSE MASTER",
-    quote: "팀이 잘 되면 나도 잘 된다",
+    quote: "나 혼자 잘해봤자 지는 게임. 팀 전체를 이기게 하는 게 진짜 실력이다.",
     type: "IQ PLAYER",
     tier: "GOLD",
+    conditionLabel: "KDA 2.2↑ · 어시스트 0.5↑/게임 · KD 1.7↑ · 평딜 220↑",
     match: (s) => s.kda >= 2.2 && s.assistsPerGame >= 0.5 && s.kd >= 1.7 && s.avgDamage >= 220,
   },
-  // 7. 나만 살면 돼 — 부활/게임<0.35 + KD≥1.4 + 승률≥2% (+farPct≥30% if weapon data)
+  // 8. 나만 살면 돼 — 부활/게임<0.35 + KD≥1.4 + 승률≥2% (+farPct≥30% if weapon data)
   {
     id: "lone",
     title: "나만 살면 돼",
     titleEn: "LONE SURVIVOR",
-    quote: "팀원? 나도 죽게 생겼는데",
+    quote: "팀원이 쓰러졌다. 나는 계속 달린다. 미안하진 않다.",
     type: "LONE WOLF",
     tier: "SILVER",
+    conditionLabel: "KD 1.4↑ · 승률 2%↑ · 부활 0.35↓/게임",
     match: (s, wr) =>
       s.revivesPerGame < 0.35 && s.kd >= 1.4 && s.winRate >= 2 &&
       (wr !== null ? wr.farPct >= 30 : true),
   },
-  // 8. 돌격대장 — KD≥1.4 + 평딜≥200 (+nearPct≥50% if weapon data, else 생존시간<17분)
+  // 9. 돌격대장 — KD≥1.4 + 평딜≥200 (+nearPct≥50% if weapon data, else 생존시간<17분)
   {
     id: "assault",
     title: "돌격대장",
     titleEn: "ASSAULT COMMANDER",
-    quote: "들어가서 죽는 게 전략이야",
+    quote: "생각은 나중에. 일단 들어가고 본다. 안 되면 그때 생각한다.",
     type: "AGGRESSIVE RIFLER",
     tier: "GOLD",
+    conditionLabel: "KD 1.4↑ · 평딜 200↑ · 근거리 교전 선호",
     match: (s, wr) =>
       s.kd >= 1.4 && s.avgDamage >= 200 &&
       (wr !== null ? wr.nearPct >= 50 : s.avgSurvivalMin < 17),
   },
-  // 9. 존버황제
+  // 10. 존버황제
   {
     id: "camper",
     title: "존버황제",
     titleEn: "KING OF CAMPING",
-    quote: "싸움? 그게 뭔데 먹는 건가",
+    quote: "총소리가 나면 숨는다. 자기장이 오면 피한다. 그게 전략의 전부다.",
     type: "PASSIVE SURVIVOR",
     tier: "BRONZE",
+    conditionLabel: "TOP10 38%↑ · KD 1.0↓ · 평딜 150↓",
     match: (s) => s.top10Rate >= 38 && s.kd < 1.0 && s.avgDamage < 150,
   },
-  // 10. 탈것 장인
+  // 11. 탈것 장인
   {
     id: "vehicle",
     title: "탈것 장인",
     titleEn: "VEHICLE MASTER",
-    quote: "차가 곧 나다",
+    quote: "두 발로 뛰는 건 시간 낭비다. 네 바퀴면 모든 게 해결된다.",
     type: "MOBILITY SPECIALIST",
     tier: "SILVER",
+    conditionLabel: "주행거리 2500m↑/게임 · KD 1.0↑",
     match: (s) => s.rideDistPerGame >= 2500 && s.kd >= 1.0,
   },
-  // 11. 맨발의 사나이
+  // 12. 맨발의 사나이
   {
     id: "barefoot",
     title: "맨발의 사나이",
     titleEn: "BAREFOOT WARRIOR",
-    quote: "차는 약자가 타는 것",
+    quote: "차? 그게 뭔데. 두 다리면 충분하다.",
     type: "GROUND OPERATOR",
     tier: "SILVER",
+    conditionLabel: "도보 3500m↑/게임 · 주행 800m↓/게임",
     match: (s) => s.walkDistPerGame >= 3500 && s.rideDistPerGame < 800,
   },
-  // 12. 마라톤선수
+  // 13. 마라톤선수
   {
     id: "marathon",
     title: "마라톤선수",
     titleEn: "MARATHON RUNNER",
-    quote: "뛰는 게 좋아서 배그 한다",
+    quote: "킬보다 뛰는 게 더 재밌다. 총은 보조 수단일 뿐이다.",
     type: "DISTANCE WALKER",
     tier: "BRONZE",
+    conditionLabel: "도보 4500m↑/게임 · KD 1.0↓",
     match: (s) => s.walkDistPerGame >= 4500 && s.kd < 1.0,
   },
-  // 13. 성실한 삽질러
+  // 14. 성실한 삽질러
   {
     id: "grinder",
     title: "성실한 삽질러",
     titleEn: "DEDICATED GRINDER",
-    quote: "못해도 안 그만두는 게 실력이다",
+    quote: "100판을 해도 아직 모르겠다. 그래도 내일 또 할 거다.",
     type: "PERSISTENT PLAYER",
     tier: "BRONZE",
+    conditionLabel: "100판↑ · KD 1.0↓",
     match: (s) => s.roundsPlayed >= 100 && s.kd < 1.0,
   },
-  // 14. 4렙 가방 (fallback)
+  // 15. 4렙 가방 (fallback)
   {
     id: "rookie",
     title: "4렙 가방",
     titleEn: "LVL4 BACKPACK",
-    quote: "아직 가방만 레벨4다",
+    quote: "아이템은 잘 모은다. 그걸 어떻게 쓰는지가... 아직 연구 중이다.",
     type: "DEVELOPING WARRIOR",
     tier: "BRONZE",
+    conditionLabel: "분석 중...",
     match: () => true,
   },
 ];
@@ -410,6 +427,7 @@ export function determinePersona(s: ProcessedStats, wr?: WeaponRatio | null): Pe
     quote: found.quote,
     type: found.type,
     tier: found.tier,
+    conditionLabel: found.conditionLabel,
   };
 }
 
