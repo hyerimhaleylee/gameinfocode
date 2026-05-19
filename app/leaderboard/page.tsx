@@ -196,7 +196,7 @@ export default function LeaderboardPage() {
               <table className="w-full text-xs font-mono">
                 <thead>
                   <tr className="border-b border-white/8">
-                    {["#", "플레이어", "RP", "K/D", "KDA", "평균딜", "승률", "게임수"].map((h) => (
+                    {["#", "플레이어", "티어", "RP", "K/D", "평균킬", "평균딜", "승률", "게임수"].map((h) => (
                       <th key={h} className={`py-2.5 px-3 text-left text-slate-600 tracking-wider font-normal ${h === "#" ? "w-12" : ""}`}>
                         {h}
                       </th>
@@ -227,6 +227,13 @@ export default function LeaderboardPage() {
                             {entry.name}
                           </button>
                         </td>
+                        <td className="py-2.5 px-3">
+                          {entry.tier ? (
+                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm border border-amber-500/30 text-amber-300 bg-amber-500/8">
+                              {entry.tier} {entry.subTier}
+                            </span>
+                          ) : <span className="text-slate-700">-</span>}
+                        </td>
                         <td className="py-2.5 px-3 text-cyan-300 font-semibold">
                           {entry.rankPoint.toLocaleString()}
                         </td>
@@ -234,7 +241,7 @@ export default function LeaderboardPage() {
                           {entry.killDeathRatio.toFixed(2)}
                         </td>
                         <td className="py-2.5 px-3 text-slate-300">
-                          {entry.kda.toFixed(2)}
+                          {entry.averageKill.toFixed(2)}
                         </td>
                         <td className="py-2.5 px-3 text-amber-300">
                           {Math.round(entry.averageDamage)}

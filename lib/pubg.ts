@@ -305,6 +305,9 @@ export interface LeaderboardEntry {
   killDeathRatio: number;
   kda: number;
   averageRank: number;
+  averageKill: number;
+  tier: string;
+  subTier: string;
 }
 
 export async function getLeaderboard(
@@ -330,34 +333,42 @@ export async function getLeaderboard(
       name: string;
       rank: number;
       stats: {
-        rankPoint?: number;
+        rankPoints?: number;
         wins?: number;
         games?: number;
         winRatio?: number;
         averageDamage?: number;
         kills?: number;
-        killDeathRatio?: number;
-        kda?: number;
         averageRank?: number;
+        averageKill?: number;
+        tier?: string;
+        subTier?: string;
       };
     };
   };
 
   const mapPlayer = (p: RawPlayer): LeaderboardEntry => {
     const s = p.attributes.stats;
+    const wins = s.wins ?? 0;
+    const games = s.games ?? 0;
+    const kills = s.kills ?? 0;
+    const deaths = Math.max(games - wins, 1);
     return {
       rank: p.attributes.rank,
       accountId: p.id,
       name: p.attributes.name,
-      rankPoint: s.rankPoint ?? 0,
-      wins: s.wins ?? 0,
-      games: s.games ?? 0,
+      rankPoint: s.rankPoints ?? 0,
+      wins,
+      games,
       winRatio: s.winRatio ?? 0,
       averageDamage: s.averageDamage ?? 0,
-      kills: s.kills ?? 0,
-      killDeathRatio: s.killDeathRatio ?? 0,
-      kda: s.kda ?? 0,
+      kills,
+      killDeathRatio: parseFloat((kills / deaths).toFixed(2)),
+      kda: parseFloat((kills / deaths).toFixed(2)),
       averageRank: s.averageRank ?? 0,
+      averageKill: s.averageKill ?? 0,
+      tier: s.tier ?? "",
+      subTier: s.subTier ?? "",
     };
   };
 
