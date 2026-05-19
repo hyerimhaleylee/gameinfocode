@@ -186,8 +186,9 @@ export default function LeaderboardPage() {
               </div>
             </div>
           ) : entries.length === 0 && !loading ? (
-            <div className="flex items-center justify-center py-20">
-              <p className="text-slate-600 text-sm font-mono">데이터가 없습니다.</p>
+            <div className="flex flex-col items-center justify-center py-20 gap-2">
+              <p className="text-slate-600 text-sm font-mono">현재 시즌 리더보드 데이터가 없습니다.</p>
+              <p className="text-slate-700 text-[10px] font-mono">시즌 종료 후 또는 PUBG API 업데이트 시 반영됩니다.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">

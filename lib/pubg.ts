@@ -313,10 +313,12 @@ export async function getLeaderboard(
   shard = "steam"
 ): Promise<LeaderboardEntry[]> {
   const res = await pubgFetch(
-    `${BASE}/${shard}/leaderboards/${seasonId}/${gameMode}?filter[playerCount]=100`,
+    `${BASE}/${shard}/leaderboards/${seasonId}/${gameMode}`,
     { next: { revalidate: 3600 } } as RequestInit
   );
   const resText = await res.text();
+  // 400/404: PUBG API has no leaderboard data for this season/mode — return empty gracefully
+  if (res.status === 400 || res.status === 404) return [];
   if (!res.ok) throw new Error(`리더보드 조회 오류 (${res.status}): ${resText.slice(0, 200)}`);
 
   const json = JSON.parse(resText) as Record<string, unknown>;
