@@ -275,7 +275,7 @@ const PERSONA_DEFS: Array<{
       s.headshotRate >= 30 && s.kd >= 1.8 &&
       (wr === null || wr.farPct >= 40),
   },
-  // 4. 팀의 구원자 — 부활/게임≥0.6 + 어시/게임≥0.8
+  // 4. 팀의 구원자 — KD<1.2 + 부활/게임≥0.25 + 어시/게임≥0.4 (실력보다 팀기여 우선하는 서포터)
   {
     id: "savior",
     title: "팀의 구원자",
@@ -283,7 +283,7 @@ const PERSONA_DEFS: Array<{
     quote: "팀원이 쓰러지면 내 심장도 쓰러진다",
     type: "TACTICAL SUPPORT",
     tier: "SILVER",
-    match: (s) => s.revivesPerGame >= 0.6 && s.assistsPerGame >= 0.8,
+    match: (s) => s.kd < 1.2 && s.revivesPerGame >= 0.25 && s.assistsPerGame >= 0.4,
   },
   // 5. 자기장 마스터
   {
@@ -295,7 +295,7 @@ const PERSONA_DEFS: Array<{
     tier: "GOLD",
     match: (s) => s.winRate >= 8 && s.avgSurvivalMin >= 22 && s.kd >= 1.0,
   },
-  // 6. 센스쟁이 — KDA≥2.5 + 어시/게임≥1.2 + KD≥1.5
+  // 6. 센스쟁이 — KDA≥2.0 + 어시/게임≥0.45 + KD≥1.7 (고KD+팀기여 동시 충족하는 올라운더)
   {
     id: "sense",
     title: "센스쟁이",
@@ -303,9 +303,9 @@ const PERSONA_DEFS: Array<{
     quote: "팀이 잘 되면 나도 잘 된다",
     type: "IQ PLAYER",
     tier: "GOLD",
-    match: (s) => s.kda >= 2.5 && s.assistsPerGame >= 1.2 && s.kd >= 1.5,
+    match: (s) => s.kda >= 2.0 && s.assistsPerGame >= 0.45 && s.kd >= 1.7,
   },
-  // 7. 나만 살면 돼 — 부활/게임<0.2 + KD≥1.4 + 승률≥2% (+farPct≥35% if weapon data, else 생존시간≥15분)
+  // 7. 나만 살면 돼 — 부활/게임<0.30 + KD≥1.4 + 승률≥2% (+farPct≥35% if weapon data, else 생존시간≥15분)
   {
     id: "lone",
     title: "나만 살면 돼",
@@ -314,7 +314,7 @@ const PERSONA_DEFS: Array<{
     type: "LONE WOLF",
     tier: "SILVER",
     match: (s, wr) =>
-      s.revivesPerGame < 0.2 && s.kd >= 1.4 && s.winRate >= 2 &&
+      s.revivesPerGame < 0.30 && s.kd >= 1.4 && s.winRate >= 2 &&
       (wr !== null ? wr.farPct >= 35 : s.avgSurvivalMin >= 15),
   },
   // 8. 돌격대장 — KD≥1.4 + 평딜≥200 (+nearPct≥50% if weapon data, else 생존시간<17분)
@@ -337,7 +337,7 @@ const PERSONA_DEFS: Array<{
     quote: "싸움? 그게 뭔데 먹는 건가",
     type: "PASSIVE SURVIVOR",
     tier: "BRONZE",
-    match: (s) => s.top10Rate >= 38 && s.kd < 1.0 && s.avgDamage < 130,
+    match: (s) => s.top10Rate >= 38 && s.kd < 1.0 && s.avgDamage < 150,
   },
   // 10. 탈것 장인
   {
