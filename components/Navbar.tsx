@@ -8,7 +8,6 @@ const NAV_LINKS = [
   { label: "Analyze", href: "/" },
   { label: "Leaderboard", href: "/leaderboard" },
   { label: "Personas", href: "/persona" },
-  { label: "Community", href: "#" },
 ];
 
 export default function Navbar({ onReset }: { onReset?: () => void }) {
@@ -57,18 +56,6 @@ export default function Navbar({ onReset }: { onReset?: () => void }) {
             ))}
           </div>
 
-          {/* Auth buttons */}
-          <div className="hidden md:flex items-center gap-3">
-            <button className="px-4 py-1.5 text-xs font-medium text-slate-400 hover:text-white transition-colors tracking-widest uppercase">
-              Login
-            </button>
-            <button
-              className="px-5 py-1.5 text-xs font-bold tracking-widest uppercase text-black bg-cyan-400 hover:bg-cyan-300 transition-all duration-200"
-              style={{ boxShadow: "0 0 16px rgba(0,245,255,0.4)" }}
-            >
-              Sign Up
-            </button>
-          </div>
 
           {/* Mobile hamburger */}
           <button
@@ -93,10 +80,6 @@ export default function Navbar({ onReset }: { onReset?: () => void }) {
                 {item.label}
               </Link>
             ))}
-            <div className="flex gap-3 pt-2">
-              <button className="text-xs text-slate-400 tracking-widest uppercase">Login</button>
-              <button className="px-4 py-1.5 text-xs font-bold text-black bg-cyan-400 tracking-widest uppercase">Sign Up</button>
-            </div>
           </div>
         )}
       </div>

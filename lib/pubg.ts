@@ -356,9 +356,7 @@ export async function getLeaderboard(
       .map(mapPlayer);
   }
 
-  throw new Error(
-    `리더보드 데이터 없음 — API 응답 키: ${Object.keys(json).join(", ")} / included: ${included.length}건`
-  );
+  return [];
 }
 
 // Fetch a single player by account ID (used by teammates endpoint)
