@@ -299,8 +299,8 @@ const PERSONA_DEFS: Array<{
     quote: "내가 살아있는 한, 팀원도 살아있다. 이게 내 전쟁이다.",
     type: "TACTICAL SUPPORT",
     tier: "SILVER",
-    conditionLabel: "KD 1.5↓ · 부활 0.4↑/게임",
-    match: (s) => s.kd < 1.5 && s.revivesPerGame >= 0.4,
+    conditionLabel: "KD 1.2↓ · 부활 0.25↑/게임 · 어시스트 0.4↑/게임",
+    match: (s) => s.kd < 1.2 && s.revivesPerGame >= 0.25 && s.assistsPerGame >= 0.4,
   },
   // 6. 자기장 마스터
   {
@@ -310,8 +310,8 @@ const PERSONA_DEFS: Array<{
     quote: "싸움은 안 한다. 자기장이 알아서 죽여주기 때문이다.",
     type: "SURVIVAL SPECIALIST",
     tier: "GOLD",
-    conditionLabel: "승률 8%↑ · 평균 생존 22분↑ · KD 1.0↑",
-    match: (s) => s.winRate >= 8 && s.avgSurvivalMin >= 22 && s.kd >= 1.0,
+    conditionLabel: "승률 8%↑ · 평균 생존 17분↑ · KD 1.0↑",
+    match: (s) => s.winRate >= 8 && s.avgSurvivalMin >= 17 && s.kd >= 1.0,
   },
   // 7. 센스쟁이 — KDA≥2.2 + 어시/게임≥0.5 + KD≥1.7 + 평딜≥220
   {
@@ -337,31 +337,7 @@ const PERSONA_DEFS: Array<{
       s.revivesPerGame < 0.35 && s.kd >= 1.4 && s.winRate >= 2 &&
       (wr !== null ? wr.farPct >= 30 : true),
   },
-  // 9. 돌격대장 — KD≥1.4 + 평딜≥200 (+nearPct≥50% if weapon data, else 생존시간<17분)
-  {
-    id: "assault",
-    title: "돌격대장, 생각보다 총구가 먼저",
-    titleEn: "ASSAULT COMMANDER",
-    quote: "생각은 나중에. 일단 들어가고 본다. 안 되면 그때 생각한다.",
-    type: "AGGRESSIVE RIFLER",
-    tier: "GOLD",
-    conditionLabel: "KD 1.4↑ · 평딜 200↑ · 근거리 교전 선호",
-    match: (s, wr) =>
-      s.kd >= 1.4 && s.avgDamage >= 200 &&
-      (wr !== null ? wr.nearPct >= 50 : s.avgSurvivalMin < 17),
-  },
-  // 10. 존버황제
-  {
-    id: "camper",
-    title: "존버황제, 총소리 나면 일단 숨는다",
-    titleEn: "KING OF CAMPING",
-    quote: "총소리가 나면 숨는다. 자기장이 오면 피한다. 그게 전략의 전부다.",
-    type: "PASSIVE SURVIVOR",
-    tier: "BRONZE",
-    conditionLabel: "TOP10 38%↑ · KD 1.0↓ · 평딜 150↓",
-    match: (s) => s.top10Rate >= 38 && s.kd < 1.0 && s.avgDamage < 150,
-  },
-  // 11. 탈것 장인
+  // 9. 탈것 장인 (돌격대장보다 먼저 — 차량형 플레이어가 돌격대장으로 오분류되는 것 방지)
   {
     id: "vehicle",
     title: "탈것 장인, 바퀴가 곧 무기다",
@@ -372,6 +348,30 @@ const PERSONA_DEFS: Array<{
     conditionLabel: "주행거리 2500m↑/게임 · KD 1.0↑",
     match: (s) => s.rideDistPerGame >= 2500 && s.kd >= 1.0,
   },
+  // 10. 돌격대장 — KD≥1.2 + 평딜≥160 (+nearPct≥50% if weapon data, else 생존시간<17분)
+  {
+    id: "assault",
+    title: "돌격대장, 생각보다 총구가 먼저",
+    titleEn: "ASSAULT COMMANDER",
+    quote: "생각은 나중에. 일단 들어가고 본다. 안 되면 그때 생각한다.",
+    type: "AGGRESSIVE RIFLER",
+    tier: "GOLD",
+    conditionLabel: "KD 1.2↑ · 평딜 160↑ · 근거리 교전 선호",
+    match: (s, wr) =>
+      s.kd >= 1.2 && s.avgDamage >= 160 &&
+      (wr !== null ? wr.nearPct >= 50 : s.avgSurvivalMin < 17),
+  },
+  // 11. 존버황제
+  {
+    id: "camper",
+    title: "존버황제, 총소리 나면 일단 숨는다",
+    titleEn: "KING OF CAMPING",
+    quote: "총소리가 나면 숨는다. 자기장이 오면 피한다. 그게 전략의 전부다.",
+    type: "PASSIVE SURVIVOR",
+    tier: "BRONZE",
+    conditionLabel: "TOP10 38%↑ · KD 1.0↓ · 평딜 150↓",
+    match: (s) => s.top10Rate >= 38 && s.kd < 1.0 && s.avgDamage < 150,
+  },
   // 12. 맨발의 사나이
   {
     id: "barefoot",
@@ -380,8 +380,8 @@ const PERSONA_DEFS: Array<{
     quote: "차? 그게 뭔데. 두 다리면 충분하다.",
     type: "GROUND OPERATOR",
     tier: "SILVER",
-    conditionLabel: "도보 3500m↑/게임 · 주행 800m↓/게임",
-    match: (s) => s.walkDistPerGame >= 3500 && s.rideDistPerGame < 800,
+    conditionLabel: "도보 2800m↑/게임 · 주행 800m↓/게임",
+    match: (s) => s.walkDistPerGame >= 2800 && s.rideDistPerGame < 800,
   },
   // 13. 마라톤선수
   {
@@ -391,8 +391,8 @@ const PERSONA_DEFS: Array<{
     quote: "킬보다 뛰는 게 더 재밌다. 총은 보조 수단일 뿐이다.",
     type: "DISTANCE WALKER",
     tier: "BRONZE",
-    conditionLabel: "도보 4500m↑/게임 · KD 1.0↓",
-    match: (s) => s.walkDistPerGame >= 4500 && s.kd < 1.0,
+    conditionLabel: "도보 3500m↑/게임 · KD 1.0↓",
+    match: (s) => s.walkDistPerGame >= 3500 && s.kd < 1.0,
   },
   // 14. 성실한 삽질러
   {
