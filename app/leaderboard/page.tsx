@@ -13,6 +13,8 @@ const MODES = [
   { key: "squad",     label: "스쿼드 3인칭" },
   { key: "duo-fpp",  label: "듀오 1인칭" },
   { key: "duo",      label: "듀오 3인칭" },
+  { key: "solo-fpp", label: "솔로 1인칭" },
+  { key: "solo",     label: "솔로 3인칭" },
 ];
 
 

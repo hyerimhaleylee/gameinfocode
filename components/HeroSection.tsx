@@ -370,7 +370,7 @@ export default function HeroSection({ onSearch }: Props) {
         >
           {[
             { val: "50K+", label: "Players Scanned" },
-            { val: "12", label: "Persona Types" },
+            { val: "15", label: "Persona Types" },
             { val: "98%", label: "Pattern Accuracy" },
           ].map((s) => (
             <div key={s.label} className="text-center">

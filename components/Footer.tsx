@@ -23,7 +23,7 @@ export default function Footer({ onReset }: { onReset?: () => void }) {
               플레이 데이터를 분석하여 전술 리포트와 AI 코칭을 제공합니다.
             </p>
             <p className="text-xs text-slate-700 font-mono tracking-widest">
-              gameinfocode.com
+              gameinfocode.vercel.app
             </p>
           </div>
 
@@ -33,56 +33,21 @@ export default function Footer({ onReset }: { onReset?: () => void }) {
               Platform
             </p>
             <div className="space-y-3">
-              {["Analyze", "Leaderboard", "Personas", "Community", "API Docs"].map((item) => (
-                <a
-                  key={item}
-                  href="#"
-                  className="block text-sm text-slate-600 hover:text-cyan-400 transition-colors duration-200"
-                >
-                  {item}
-                </a>
-              ))}
+              <a href="/" className="block text-sm text-slate-600 hover:text-cyan-400 transition-colors duration-200">Analyze</a>
+              <a href="/leaderboard" className="block text-sm text-slate-600 hover:text-cyan-400 transition-colors duration-200">Leaderboard</a>
+              <a href="/#personas" className="block text-sm text-slate-600 hover:text-cyan-400 transition-colors duration-200">Personas</a>
             </div>
           </div>
 
-          {/* Connect */}
-          <div>
-            <p className="text-[10px] font-bold tracking-[0.25em] text-slate-500 uppercase mb-5">
-              Connect
-            </p>
-            <div className="space-y-3">
-              {[
-                { name: "Twitter / X", handle: "@gamecode_gg" },
-                { name: "Discord", handle: "discord.gg/gamecode" },
-                { name: "GitHub", handle: "github.com/gamecode" },
-              ].map((s) => (
-                <a
-                  key={s.name}
-                  href="#"
-                  className="block group"
-                >
-                  <span className="text-sm text-slate-600 group-hover:text-cyan-400 transition-colors duration-200">
-                    {s.name}
-                  </span>
-                  <span className="block text-xs text-slate-700 font-mono mt-0.5">{s.handle}</span>
-                </a>
-              ))}
-            </div>
-          </div>
+          {/* Empty column for spacing */}
+          <div />
         </div>
 
         {/* Bottom bar */}
-        <div className="border-t border-white/5 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="border-t border-white/5 pt-6 flex items-center justify-center">
           <p className="text-slate-700 text-xs font-mono">
             © 2026 GAMECODE. All rights reserved.
           </p>
-          <div className="flex items-center gap-4">
-            {["Privacy Policy", "Terms of Service"].map((item) => (
-              <a key={item} href="#" className="text-xs text-slate-700 hover:text-slate-500 transition-colors">
-                {item}
-              </a>
-            ))}
-          </div>
         </div>
       </div>
     </footer>
