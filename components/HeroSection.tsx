@@ -183,7 +183,7 @@ export default function HeroSection({ onSearch }: Props) {
 
       {/* Vignette */}
       <div className="absolute inset-0 z-0" style={{
-        background: "radial-gradient(ellipse 75% 65% at 50% 50%, transparent 10%, rgba(20,26,34,0.55) 65%, #141a22 100%)"
+        background: "radial-gradient(ellipse 75% 65% at 50% 50%, transparent 10%, rgba(26,45,63,0.55) 65%, #1a2d3f 100%)"
       }} />
 
       {/* HUD corner brackets */}
@@ -383,7 +383,7 @@ export default function HeroSection({ onSearch }: Props) {
 
       {/* Bottom fade */}
       <div className="absolute bottom-0 left-0 right-0 h-48 z-10"
-        style={{ background: "linear-gradient(to top, #141a22, transparent)" }} />
+        style={{ background: "linear-gradient(to top, #1a2d3f, transparent)" }} />
     </section>
   );
 }

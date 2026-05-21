@@ -27,7 +27,7 @@ export default function Navbar({ onReset }: { onReset?: () => void }) {
       transition={{ duration: 0.7, ease: "easeOut" }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-400 ${
         scrolled
-          ? "bg-[#141a22]/88 backdrop-blur-2xl border-b border-cyan-500/20"
+          ? "bg-[#1a2d3f]/90 backdrop-blur-2xl border-b border-cyan-500/20"
           : "bg-transparent backdrop-blur-sm"
       }`}
     >

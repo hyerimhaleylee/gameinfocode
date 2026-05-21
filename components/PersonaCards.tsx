@@ -204,7 +204,7 @@ export default function PersonaCards() {
                   <p className="text-xs tracking-[0.15em] text-slate-600 mb-3 font-mono">
                     {p.subtitle}
                   </p>
-                  <p className="text-slate-400 text-sm leading-relaxed flex-1">
+                  <p className="text-slate-300 text-[0.82rem] leading-relaxed flex-1">
                     {p.desc}
                   </p>
 

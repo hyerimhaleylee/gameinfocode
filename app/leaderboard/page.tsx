@@ -100,7 +100,7 @@ export default function LeaderboardPage() {
   };
 
   return (
-    <main className="bg-[#141a22] min-h-screen overflow-x-hidden">
+    <main className="bg-[#1a2d3f] min-h-screen overflow-x-hidden">
       <Navbar />
       <div className="absolute inset-0 pointer-events-none"
         style={{ background: "radial-gradient(ellipse 80% 40% at 50% 0%, rgba(99,179,237,0.04) 0%, transparent 70%)" }} />
