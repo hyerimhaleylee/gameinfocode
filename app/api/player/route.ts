@@ -220,7 +220,7 @@ export async function GET(req: NextRequest) {
       weaponRatio = { nearPct: weaponStats.nearPct, farPct: weaponStats.farPct, totalTracked: weaponStats.totalTracked };
     }
 
-    const persona = determinePersona(stats, weaponRatio);
+    const persona = determinePersona(stats);
     const insights = generateInsights(stats);
     const recommendation = generateRecommendation(stats);
     const radarValues = calculateRadarValues(stats);

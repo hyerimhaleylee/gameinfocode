@@ -241,9 +241,8 @@ const PERSONA_DEFS: Array<{
   type: string;
   tier: string;
   conditionLabel: string;
-  match: (s: ProcessedStats, wr: WeaponRatio | null) => boolean;
+  match: (s: ProcessedStats) => boolean;
 }> = [
-  // 1. 완성형 인간
   {
     id: "perfect",
     title: "완성형 인간, 인간의 탈을 쓴 무언가",
@@ -254,7 +253,6 @@ const PERSONA_DEFS: Array<{
     conditionLabel: "KD 3.5↑ · 승률 10%↑ · 평딜 350↑",
     match: (s) => s.kd >= 3.5 && s.winRate >= 10 && s.avgDamage >= 350,
   },
-  // 2. 전장의 지배자
   {
     id: "warlord",
     title: "전장의 지배자, 불멸의 수호신",
@@ -265,7 +263,6 @@ const PERSONA_DEFS: Array<{
     conditionLabel: "KD 1.9↑ · 부활 0.4↑/게임",
     match: (s) => s.kd >= 1.9 && s.revivesPerGame >= 0.4,
   },
-  // 3. 에임만 신
   {
     id: "aim_god",
     title: "에임만 신, 뇌는 그냥 장식품",
@@ -273,36 +270,19 @@ const PERSONA_DEFS: Array<{
     quote: "방아쇠만 당기면 된다. 나머지는... 팀원이 알아서 하겠지.",
     type: "MECHANICAL GENIUS",
     tier: "GOLD",
-    conditionLabel: "KD 2.0↑ · 평딜 220↑ · 어시스트 0.8↓/게임",
-    match: (s, wr) =>
-      s.kd >= 2.0 && s.assistsPerGame < 0.8 && s.avgDamage >= 220 &&
-      (wr !== null ? wr.nearPct >= 55 : true),
+    conditionLabel: "KD 2.4↑ · 평딜 280↑ · 어시스트 0.8↓/게임",
+    match: (s) => s.kd >= 2.4 && s.assistsPerGame < 0.8 && s.avgDamage >= 280,
   },
-  // 4. 저격의 신
   {
-    id: "sniper",
-    title: "저격의 신, 스코프 너머의 사형선고",
-    titleEn: "GOD OF SNIPING",
-    quote: "스코프 안에 들어온 순간, 이미 당신은 죽었다.",
-    type: "PRECISION MARKSMAN",
+    id: "hotdrop",
+    title: "핫드랍 광신도, 착지하자마자 전쟁이다",
+    titleEn: "HOTDROP FANATIC",
+    quote: "착지하자마자 총소리. 그게 좋다. 조용한 게임은 내 게임이 아니다.",
+    type: "HOT DROP ADDICT",
     tier: "GOLD",
-    conditionLabel: "헤드샷 28%↑ · KD 1.5↑",
-    match: (s, wr) =>
-      s.headshotRate >= 28 && s.kd >= 1.5 &&
-      (wr === null || wr.farPct >= 40),
+    conditionLabel: "KD 1.6↑ · 평딜 220↑ · 평균생존 12분↓",
+    match: (s) => s.kd >= 1.6 && s.avgDamage >= 220 && s.avgSurvivalMin < 12,
   },
-  // 5. 자기장 마스터
-  {
-    id: "zone_master",
-    title: "자기장 마스터, 싸움 없이 이기는 자",
-    titleEn: "ZONE MASTER",
-    quote: "싸움은 안 한다. 자기장이 알아서 죽여주기 때문이다.",
-    type: "SURVIVAL SPECIALIST",
-    tier: "GOLD",
-    conditionLabel: "승률 6%↑ · 평균 생존 13분↑ · KD 1.0↑",
-    match: (s) => s.winRate >= 6 && s.avgSurvivalMin >= 13 && s.kd >= 1.0,
-  },
-  // 6. 센스쟁이
   {
     id: "sense",
     title: "센스쟁이, 게임을 읽는 눈을 가진 자",
@@ -313,7 +293,16 @@ const PERSONA_DEFS: Array<{
     conditionLabel: "KDA 2.0↑ · 어시스트 0.5↑/게임 · KD 1.7↑",
     match: (s) => s.kda >= 2.0 && s.assistsPerGame >= 0.5 && s.kd >= 1.7,
   },
-  // 7. 나만 살면 돼
+  {
+    id: "sniper",
+    title: "저격의 신, 스코프 너머의 사형선고",
+    titleEn: "GOD OF SNIPING",
+    quote: "스코프 안에 들어온 순간, 이미 당신은 죽었다.",
+    type: "PRECISION MARKSMAN",
+    tier: "GOLD",
+    conditionLabel: "헤드샷 28%↑ · KD 1.5↑",
+    match: (s) => s.headshotRate >= 28 && s.kd >= 1.5,
+  },
   {
     id: "lone",
     title: "나만 살면 돼, 팀원은 그냥 구경꾼",
@@ -321,34 +310,9 @@ const PERSONA_DEFS: Array<{
     quote: "팀원이 쓰러졌다. 나는 계속 달린다. 미안하진 않다.",
     type: "LONE WOLF",
     tier: "SILVER",
-    conditionLabel: "KD 1.4↑ · 승률 2%↑ · 부활 0.35↓/게임",
-    match: (s, wr) =>
-      s.revivesPerGame < 0.35 && s.kd >= 1.4 && s.winRate >= 2 &&
-      (wr !== null ? wr.farPct >= 30 : true),
+    conditionLabel: "KD 1.5↑ · 승률 2%↑ · 부활 0.35↓/게임",
+    match: (s) => s.revivesPerGame < 0.35 && s.kd >= 1.5 && s.winRate >= 2,
   },
-  // 8. 팀의 구원자
-  {
-    id: "savior",
-    title: "팀의 구원자, 쓰러진 자를 일으키는 손",
-    titleEn: "TEAM SAVIOR",
-    quote: "내가 살아있는 한, 팀원도 살아있다. 이게 내 전쟁이다.",
-    type: "TACTICAL SUPPORT",
-    tier: "SILVER",
-    conditionLabel: "KD 1.2↓ · 부활 0.35↑/게임 · 어시스트 0.4↑/게임",
-    match: (s) => s.kd < 1.2 && s.revivesPerGame >= 0.35 && s.assistsPerGame >= 0.4,
-  },
-  // 9. 탈것 장인
-  {
-    id: "vehicle",
-    title: "탈것 장인, 바퀴가 곧 무기다",
-    titleEn: "VEHICLE MASTER",
-    quote: "두 발로 뛰는 건 시간 낭비다. 네 바퀴면 모든 게 해결된다.",
-    type: "MOBILITY SPECIALIST",
-    tier: "SILVER",
-    conditionLabel: "주행거리 2000m↑/게임 · KD 0.8↑",
-    match: (s) => s.rideDistPerGame >= 2000 && s.kd >= 0.8,
-  },
-  // 10. 돌격대장
   {
     id: "assault",
     title: "돌격대장, 생각보다 총구가 먼저",
@@ -356,23 +320,59 @@ const PERSONA_DEFS: Array<{
     quote: "생각은 나중에. 일단 들어가고 본다. 안 되면 그때 생각한다.",
     type: "AGGRESSIVE RIFLER",
     tier: "GOLD",
-    conditionLabel: "KD 1.0↑ · 평딜 200↑ · 근거리 교전 선호",
-    match: (s, wr) =>
-      s.kd >= 1.0 && s.avgDamage >= 200 &&
-      (wr !== null ? wr.nearPct >= 50 : s.avgSurvivalMin < 17),
+    conditionLabel: "KD 1.2↑ · 평딜 210↑ · 평균생존 17분↓",
+    match: (s) => s.kd >= 1.2 && s.avgDamage >= 210 && s.avgSurvivalMin < 17,
   },
-  // 11. 맨발의 사나이
   {
-    id: "barefoot",
-    title: "맨발의 사나이, 두 다리로 전장을 누비는 자",
-    titleEn: "BAREFOOT WARRIOR",
-    quote: "차? 그게 뭔데. 두 다리면 충분하다.",
-    type: "GROUND OPERATOR",
-    tier: "SILVER",
-    conditionLabel: "도보 1600m↑/게임 · 주행 1200m↓/게임",
-    match: (s) => s.walkDistPerGame >= 1600 && s.rideDistPerGame < 1200,
+    id: "zone_master",
+    title: "자기장 마스터, 싸움 없이 이기는 자",
+    titleEn: "ZONE MASTER",
+    quote: "싸움은 안 한다. 자기장이 알아서 죽여주기 때문이다.",
+    type: "SURVIVAL SPECIALIST",
+    tier: "GOLD",
+    conditionLabel: "승률 5%↑ · 평균 생존 13분↑ · KD 1.0↑",
+    match: (s) => s.winRate >= 5 && s.avgSurvivalMin >= 13 && s.kd >= 1.0,
   },
-  // 12. 존버황제
+  {
+    id: "vehicle",
+    title: "탈것 장인, 바퀴가 곧 무기다",
+    titleEn: "VEHICLE MASTER",
+    quote: "두 발로 뛰는 건 시간 낭비다. 네 바퀴면 모든 게 해결된다.",
+    type: "MOBILITY SPECIALIST",
+    tier: "SILVER",
+    conditionLabel: "주행거리 1900m↑/게임 · KD 0.8↑",
+    match: (s) => s.rideDistPerGame >= 1900 && s.kd >= 0.8,
+  },
+  {
+    id: "lucky_chicken",
+    title: "어쩌다 치킨, 어떻게 이긴 건지 나도 모른다",
+    titleEn: "ACCIDENTAL CHAMPION",
+    quote: "총 싸움은 자신 없다. 그냥 숨어있었는데... 다들 죽어있었다.",
+    type: "LUCKY SURVIVOR",
+    tier: "SILVER",
+    conditionLabel: "승률 5%↑ · KD 1.0↓ · 평딜 170↓",
+    match: (s) => s.winRate >= 5 && s.kd < 1.0 && s.avgDamage < 170,
+  },
+  {
+    id: "savior",
+    title: "팀의 구원자, 쓰러진 자를 일으키는 손",
+    titleEn: "TEAM SAVIOR",
+    quote: "내가 살아있는 한, 팀원도 살아있다. 이게 내 전쟁이다.",
+    type: "TACTICAL SUPPORT",
+    tier: "SILVER",
+    conditionLabel: "KD 1.2↓ · 부활 0.25↑/게임 · 어시스트 0.4↑/게임",
+    match: (s) => s.kd < 1.2 && s.revivesPerGame >= 0.25 && s.assistsPerGame >= 0.4,
+  },
+  {
+    id: "twolegs",
+    title: "두 발의 용사, 지도를 두 다리로 정복하는 자",
+    titleEn: "TWO-LEGGED HERO",
+    quote: "차는 시끄럽고 눈에 띈다. 걸어서 가면 아무도 모른다.",
+    type: "GROUND WALKER",
+    tier: "SILVER",
+    conditionLabel: "도보 1200m↑/게임 · 주행 1200m↓/게임",
+    match: (s) => s.walkDistPerGame >= 1200 && s.rideDistPerGame < 1200,
+  },
   {
     id: "camper",
     title: "존버황제, 총소리 나면 일단 숨는다",
@@ -380,21 +380,9 @@ const PERSONA_DEFS: Array<{
     quote: "총소리가 나면 숨는다. 자기장이 오면 피한다. 그게 전략의 전부다.",
     type: "PASSIVE SURVIVOR",
     tier: "BRONZE",
-    conditionLabel: "TOP10 38%↑ · KD 1.0↓ · 평딜 150↓",
-    match: (s) => s.top10Rate >= 38 && s.kd < 1.0 && s.avgDamage < 150,
+    conditionLabel: "TOP10 12%↑ · KD 1.05↓",
+    match: (s) => s.top10Rate >= 12 && s.kd < 1.05,
   },
-  // 13. 마라톤선수
-  {
-    id: "marathon",
-    title: "마라톤선수, 킬보다 거리가 더 중요한 자",
-    titleEn: "MARATHON RUNNER",
-    quote: "킬보다 뛰는 게 더 재밌다. 총은 보조 수단일 뿐이다.",
-    type: "DISTANCE WALKER",
-    tier: "BRONZE",
-    conditionLabel: "도보 1900m↑/게임 · KD 1.0↓",
-    match: (s) => s.walkDistPerGame >= 1900 && s.kd < 1.0,
-  },
-  // 14. 성실한 삽질러
   {
     id: "grinder",
     title: "성실한 삽질러, 오늘도 내일도 지지만 멈추지 않는다",
@@ -402,10 +390,9 @@ const PERSONA_DEFS: Array<{
     quote: "100판을 해도 아직 모르겠다. 그래도 내일 또 할 거다.",
     type: "PERSISTENT PLAYER",
     tier: "BRONZE",
-    conditionLabel: "100판↑ · KD 1.0↓",
-    match: (s) => s.roundsPlayed >= 100 && s.kd < 1.0,
+    conditionLabel: "300판↑ · KD 1.5↓ · 평딜 185↓",
+    match: (s) => s.roundsPlayed >= 300 && s.kd < 1.5 && s.avgDamage < 185,
   },
-  // 15. 4렙 가방 (fallback)
   {
     id: "rookie",
     title: "4렙 가방, 아이템은 만렙 전투력은 1렙",
@@ -418,8 +405,8 @@ const PERSONA_DEFS: Array<{
   },
 ];
 
-export function determinePersona(s: ProcessedStats, wr?: WeaponRatio | null): Persona {
-  const found = PERSONA_DEFS.find((p) => p.match(s, wr ?? null))!;
+export function determinePersona(s: ProcessedStats): Persona {
+  const found = PERSONA_DEFS.find((p) => p.match(s))!;
   return {
     id: found.id,
     title: found.title,
