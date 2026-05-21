@@ -6,7 +6,7 @@ export const metadata = { title: "Personas — GAMECODE" };
 
 export default function PersonaPage() {
   return (
-    <main className="bg-[#111e35] min-h-screen overflow-x-hidden">
+    <main className="bg-[#141a22] min-h-screen overflow-x-hidden">
       <Navbar />
       <div className="pt-24">
         <PersonaCards />
