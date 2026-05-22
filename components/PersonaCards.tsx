@@ -348,17 +348,6 @@ export default function PersonaCards() {
                     {/* 설명 */}
                     <p className="text-slate-300 text-sm leading-relaxed">{selected.desc}</p>
 
-                    {/* 조건 */}
-                    {(() => {
-                      const info = getPersonaStaticInfo(selected.id);
-                      return info ? (
-                        <div className="pt-2 border-t border-white/6">
-                          <p className="text-[10px] text-slate-500 font-mono mb-1">// 판정 조건</p>
-                          <p className="text-xs text-slate-400">{info.conditionLabel}</p>
-                        </div>
-                      ) : null;
-                    })()}
-
                     {/* AI 코멘트 */}
                     <div className="pt-2 border-t border-white/6 mt-auto">
                       <p className="text-[10px] text-slate-500 font-mono mb-1">// AI Comment</p>

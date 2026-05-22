@@ -569,7 +569,6 @@ export function getPersonaStaticInfo(id: string) {
   const p = PERSONA_DEFS.find((d) => d.id === id);
   if (!p) return null;
   return {
-    conditionLabel: p.conditionLabel,
     type: p.type,
     tier: p.tier,
   };
