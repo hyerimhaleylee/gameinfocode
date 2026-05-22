@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import MiniRadarChart from "./MiniRadarChart";
+import { getPersonaArchetypeRadar } from "@/lib/persona";
 
 const PERSONAS = [
   {
@@ -11,7 +12,6 @@ const PERSONAS = [
     desc: "KD 5.0 이상, 승률 12% 이상, 평균 딜량 500 이상. 이 게임에 뭔가 문제가 있거나 당신이 특별한 것이다.",
     comment: "이 게임이 잘못된 건지, 당신이 너무 잘하는 건지. 어쨌든 당신 앞에 서면 다들 죽는다.",
     color: "blue" as const,
-    stats: { Combat: 95, Survival: 90, Mobility: 80, Squadplay: 75, Consistency: 92, Adaptability: 88 },
   },
   {
     id: "warlord",
@@ -20,7 +20,6 @@ const PERSONAS = [
     desc: "KD 1.9 이상, 게임당 부활 0.4회 이상. 총구는 적을 향하고, 손은 동료를 향한다. 살육과 구원을 동시에 행하는 자.",
     comment: "적은 내가 죽이고, 팀원은 내가 살린다",
     color: "blue" as const,
-    stats: { Combat: 92, Survival: 85, Mobility: 75, Squadplay: 88, Consistency: 88, Adaptability: 85 },
   },
   {
     id: "aim_god",
@@ -29,7 +28,6 @@ const PERSONAS = [
     desc: "KD 2.4 이상, 딜량 280 이상이지만 어시스트가 게임당 0.8 미만. 에임은 타고났지만 팀플은 개발 중.",
     comment: "방아쇠만 당기면 된다. 나머지는... 팀원이 알아서 하겠지.",
     color: "cyan" as const,
-    stats: { Combat: 90, Survival: 35, Mobility: 60, Squadplay: 30, Consistency: 65, Adaptability: 50 },
   },
   {
     id: "hotdrop",
@@ -38,7 +36,6 @@ const PERSONAS = [
     desc: "KD 1.6 이상, 평딜 220 이상, 평균 생존 12분 미만. 착지하자마자 교전이 시작된다.",
     comment: "착지하자마자 총소리. 그게 좋다. 조용한 게임은 내 게임이 아니다.",
     color: "cyan" as const,
-    stats: { Combat: 85, Survival: 28, Mobility: 65, Squadplay: 45, Consistency: 55, Adaptability: 80 },
   },
   {
     id: "sense",
@@ -47,7 +44,6 @@ const PERSONAS = [
     desc: "KDA 2.0 이상, 어시스트 0.5회 이상, KD 1.7 이상. 팀 전체를 읽는 게임 IQ의 소유자.",
     comment: "나 혼자 잘해봤자 지는 게임. 팀 전체를 이기게 하는 게 진짜 실력이다.",
     color: "cyan" as const,
-    stats: { Combat: 70, Survival: 72, Mobility: 68, Squadplay: 92, Consistency: 78, Adaptability: 82 },
   },
   {
     id: "sniper",
@@ -56,7 +52,6 @@ const PERSONAS = [
     desc: "헤드샷 비율 28% 이상, KD 1.5 이상. 스코프 안에 들어오면 이미 게임 오버.",
     comment: "스코프 안에 들어온 순간, 이미 당신은 죽었다.",
     color: "blue" as const,
-    stats: { Combat: 85, Survival: 78, Mobility: 35, Squadplay: 45, Consistency: 82, Adaptability: 42 },
   },
   {
     id: "lone",
@@ -65,7 +60,6 @@ const PERSONAS = [
     desc: "KD 1.2 이상, 평딜 210 이상, 평균 생존 17분 미만, 부활 0.28회 미만. 팀원 걱정보다 내 생존이 우선.",
     comment: "팀원이 쓰러졌다. 나는 계속 달린다. 미안하진 않다.",
     color: "purple" as const,
-    stats: { Combat: 75, Survival: 65, Mobility: 68, Squadplay: 15, Consistency: 62, Adaptability: 60 },
   },
   {
     id: "assault",
@@ -74,7 +68,6 @@ const PERSONAS = [
     desc: "KD 1.2 이상, 평균 딜량 210 이상, 평균 생존 17분 미만. 생각보다 총이 먼저 나간다.",
     comment: "생각은 나중에. 일단 들어가고 본다. 안 되면 그때 생각한다.",
     color: "cyan" as const,
-    stats: { Combat: 88, Survival: 42, Mobility: 72, Squadplay: 58, Consistency: 52, Adaptability: 78 },
   },
   {
     id: "zone_master",
@@ -83,7 +76,6 @@ const PERSONAS = [
     desc: "승률 5% 이상, 평균 생존 13분 이상, KD 1.0 이상. 싸움 없이 끝까지 살아남는 자기장의 달인.",
     comment: "싸움은 안 한다. 자기장이 알아서 죽여주기 때문이다.",
     color: "cyan" as const,
-    stats: { Combat: 62, Survival: 95, Mobility: 78, Squadplay: 60, Consistency: 85, Adaptability: 72 },
   },
   {
     id: "vehicle",
@@ -92,7 +84,6 @@ const PERSONAS = [
     desc: "게임당 주행거리 1900m 이상, KD 0.8 이상. 바퀴가 네 개면 그게 곧 무기다.",
     comment: "두 발로 뛰는 건 시간 낭비다. 네 바퀴면 모든 게 해결된다.",
     color: "purple" as const,
-    stats: { Combat: 65, Survival: 70, Mobility: 95, Squadplay: 62, Consistency: 72, Adaptability: 70 },
   },
   {
     id: "lucky_chicken",
@@ -101,7 +92,6 @@ const PERSONAS = [
     desc: "승률 5% 이상이지만 KD 1.0 미만, 평딜 170 미만. 싸움은 못 하는데 어쩌다 이긴다.",
     comment: "총 싸움은 자신 없다. 그냥 숨어있었는데... 다들 죽어있었다.",
     color: "blue" as const,
-    stats: { Combat: 25, Survival: 85, Mobility: 55, Squadplay: 40, Consistency: 60, Adaptability: 38 },
   },
   {
     id: "savior",
@@ -110,7 +100,6 @@ const PERSONAS = [
     desc: "KD 1.2 미만, 게임당 부활 0.25회 이상, 어시스트 0.4회 이상. 싸움보다 팀원을 살리는 데 집중한다.",
     comment: "내가 살아있는 한, 팀원도 살아있다. 이게 내 전쟁이다.",
     color: "purple" as const,
-    stats: { Combat: 50, Survival: 75, Mobility: 70, Squadplay: 96, Consistency: 72, Adaptability: 68 },
   },
   {
     id: "twolegs",
@@ -119,7 +108,6 @@ const PERSONAS = [
     desc: "게임당 도보 이동거리 1200m 이상, 주행거리 1200m 미만. 두 발로 전장을 누빈다.",
     comment: "차는 시끄럽고 눈에 띈다. 걸어서 가면 아무도 모른다.",
     color: "purple" as const,
-    stats: { Combat: 55, Survival: 78, Mobility: 70, Squadplay: 48, Consistency: 65, Adaptability: 52 },
   },
   {
     id: "camper",
@@ -128,7 +116,6 @@ const PERSONAS = [
     desc: "TOP 10 진입률 12% 이상이지만 KD 1.05 미만. 싸움보다는 생존이 목표.",
     comment: "총소리가 나면 숨는다. 자기장이 오면 피한다. 그게 전략의 전부다.",
     color: "blue" as const,
-    stats: { Combat: 22, Survival: 88, Mobility: 55, Squadplay: 38, Consistency: 65, Adaptability: 35 },
   },
   {
     id: "grinder",
@@ -137,7 +124,6 @@ const PERSONAS = [
     desc: "총 게임 수 300판 이상, KD 1.5 미만, 평딜 185 미만. 못해도 끝까지 한다. 그게 이 게임이다.",
     comment: "100판을 해도 아직 모르겠다. 그래도 내일 또 할 거다.",
     color: "blue" as const,
-    stats: { Combat: 45, Survival: 55, Mobility: 48, Squadplay: 50, Consistency: 88, Adaptability: 42 },
   },
   {
     id: "rookie",
@@ -146,7 +132,6 @@ const PERSONAS = [
     desc: "아직 모든 것이 성장 중인 초보 플레이어. 하지만 시작했다는 것만으로도 충분하다.",
     comment: "아이템은 잘 모은다. 그걸 어떻게 쓰는지가... 아직 연구 중이다.",
     color: "blue" as const,
-    stats: { Combat: 28, Survival: 45, Mobility: 50, Squadplay: 40, Consistency: 35, Adaptability: 38 },
   },
 ];
 
@@ -203,7 +188,13 @@ export default function PersonaCards() {
 
                   {/* Radar */}
                   <div className="flex justify-center my-3">
-                    <MiniRadarChart stats={p.stats} color={p.color} />
+                    <MiniRadarChart
+                      stats={Object.fromEntries(
+                        ["Combat","Survival","Mobility","Squadplay","Consistency","Adaptability"]
+                          .map((k, i) => [k, getPersonaArchetypeRadar(p.id)[i]])
+                      )}
+                      color={p.color}
+                    />
                   </div>
 
                   {/* Title */}

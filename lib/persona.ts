@@ -242,6 +242,7 @@ const PERSONA_DEFS: Array<{
   tier: string;
   conditionLabel: string;
   match: (s: ProcessedStats) => boolean;
+  archetypeRadar: [number, number, number, number, number, number];
 }> = [
   {
     id: "perfect",
@@ -252,6 +253,7 @@ const PERSONA_DEFS: Array<{
     tier: "DIAMOND",
     conditionLabel: "KD 5.0↑ · 승률 12%↑ · 평딜 500↑",
     match: (s) => s.kd >= 5.0 && s.winRate >= 12 && s.avgDamage >= 500,
+    archetypeRadar: [97, 90, 80, 75, 92, 90],
   },
   {
     id: "warlord",
@@ -262,6 +264,7 @@ const PERSONA_DEFS: Array<{
     tier: "DIAMOND",
     conditionLabel: "KD 1.9↑ · 부활 0.4↑/게임",
     match: (s) => s.kd >= 1.9 && s.revivesPerGame >= 0.4,
+    archetypeRadar: [88, 82, 72, 95, 85, 80],
   },
   {
     id: "aim_god",
@@ -272,6 +275,7 @@ const PERSONA_DEFS: Array<{
     tier: "GOLD",
     conditionLabel: "KD 2.4↑ · 평딜 280↑ · 어시스트 0.8↓/게임",
     match: (s) => s.kd >= 2.4 && s.assistsPerGame < 0.8 && s.avgDamage >= 280,
+    archetypeRadar: [92, 48, 58, 22, 68, 52],
   },
   {
     id: "hotdrop",
@@ -282,6 +286,7 @@ const PERSONA_DEFS: Array<{
     tier: "GOLD",
     conditionLabel: "KD 1.6↑ · 평딜 220↑ · 평균생존 12분↓",
     match: (s) => s.kd >= 1.6 && s.avgDamage >= 220 && s.avgSurvivalMin < 12,
+    archetypeRadar: [85, 18, 78, 42, 48, 82],
   },
   {
     id: "sense",
@@ -292,6 +297,7 @@ const PERSONA_DEFS: Array<{
     tier: "GOLD",
     conditionLabel: "KDA 2.0↑ · 어시스트 0.5↑/게임 · KD 1.7↑",
     match: (s) => s.kda >= 2.0 && s.assistsPerGame >= 0.5 && s.kd >= 1.7,
+    archetypeRadar: [70, 72, 65, 94, 78, 88],
   },
   {
     id: "sniper",
@@ -302,6 +308,7 @@ const PERSONA_DEFS: Array<{
     tier: "GOLD",
     conditionLabel: "헤드샷 28%↑ · KD 1.5↑",
     match: (s) => s.headshotRate >= 28 && s.kd >= 1.5,
+    archetypeRadar: [82, 75, 28, 42, 80, 38],
   },
   {
     id: "lone",
@@ -312,6 +319,7 @@ const PERSONA_DEFS: Array<{
     tier: "SILVER",
     conditionLabel: "KD 1.2↑ · 평딜 210↑ · 생존 17분↓ · 부활 0.28↓/게임",
     match: (s) => s.kd >= 1.2 && s.avgDamage >= 210 && s.avgSurvivalMin < 17 && s.revivesPerGame < 0.28,
+    archetypeRadar: [78, 58, 70, 8, 55, 62],
   },
   {
     id: "assault",
@@ -322,6 +330,7 @@ const PERSONA_DEFS: Array<{
     tier: "GOLD",
     conditionLabel: "KD 1.2↑ · 평딜 210↑ · 평균생존 17분↓",
     match: (s) => s.kd >= 1.2 && s.avgDamage >= 210 && s.avgSurvivalMin < 17,
+    archetypeRadar: [88, 35, 72, 62, 50, 80],
   },
   {
     id: "zone_master",
@@ -332,6 +341,7 @@ const PERSONA_DEFS: Array<{
     tier: "GOLD",
     conditionLabel: "승률 5%↑ · 평균 생존 13분↑ · KD 1.0↑",
     match: (s) => s.winRate >= 5 && s.avgSurvivalMin >= 13 && s.kd >= 1.0,
+    archetypeRadar: [58, 95, 70, 60, 85, 72],
   },
   {
     id: "vehicle",
@@ -342,6 +352,7 @@ const PERSONA_DEFS: Array<{
     tier: "SILVER",
     conditionLabel: "주행거리 1900m↑/게임 · KD 0.8↑",
     match: (s) => s.rideDistPerGame >= 1900 && s.kd >= 0.8,
+    archetypeRadar: [60, 65, 96, 58, 68, 65],
   },
   {
     id: "lucky_chicken",
@@ -352,6 +363,7 @@ const PERSONA_DEFS: Array<{
     tier: "SILVER",
     conditionLabel: "승률 5%↑ · KD 1.0↓ · 평딜 170↓",
     match: (s) => s.winRate >= 5 && s.kd < 1.0 && s.avgDamage < 170,
+    archetypeRadar: [20, 90, 48, 35, 55, 32],
   },
   {
     id: "savior",
@@ -362,6 +374,7 @@ const PERSONA_DEFS: Array<{
     tier: "SILVER",
     conditionLabel: "KD 1.2↓ · 부활 0.25↑/게임 · 어시스트 0.4↑/게임",
     match: (s) => s.kd < 1.2 && s.revivesPerGame >= 0.25 && s.assistsPerGame >= 0.4,
+    archetypeRadar: [45, 70, 65, 96, 68, 62],
   },
   {
     id: "twolegs",
@@ -372,6 +385,7 @@ const PERSONA_DEFS: Array<{
     tier: "SILVER",
     conditionLabel: "도보 1200m↑/게임 · 주행 1200m↓/게임",
     match: (s) => s.walkDistPerGame >= 1200 && s.rideDistPerGame < 1200,
+    archetypeRadar: [50, 75, 65, 45, 60, 48],
   },
   {
     id: "camper",
@@ -382,6 +396,7 @@ const PERSONA_DEFS: Array<{
     tier: "BRONZE",
     conditionLabel: "TOP10 12%↑ · KD 1.05↓",
     match: (s) => s.top10Rate >= 12 && s.kd < 1.05,
+    archetypeRadar: [18, 92, 50, 32, 62, 30],
   },
   {
     id: "grinder",
@@ -392,6 +407,7 @@ const PERSONA_DEFS: Array<{
     tier: "BRONZE",
     conditionLabel: "300판↑ · KD 1.5↓ · 평딜 185↓",
     match: (s) => s.roundsPlayed >= 300 && s.kd < 1.5 && s.avgDamage < 185,
+    archetypeRadar: [40, 50, 42, 48, 92, 38],
   },
   {
     id: "rookie",
@@ -402,6 +418,7 @@ const PERSONA_DEFS: Array<{
     tier: "BRONZE",
     conditionLabel: "분석 중...",
     match: () => true,
+    archetypeRadar: [22, 38, 42, 35, 28, 32],
   },
 ];
 
@@ -542,4 +559,8 @@ export function calculateRadarValues(s: ProcessedStats): number[] {
   ));
 
   return [combat, survival, mobility, squadplay, consistency, adaptability];
+}
+
+export function getPersonaArchetypeRadar(id: string): number[] {
+  return PERSONA_DEFS.find((p) => p.id === id)?.archetypeRadar ?? [50, 50, 50, 50, 50, 50];
 }
