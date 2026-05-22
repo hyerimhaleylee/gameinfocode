@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import type { LeaderboardEntry } from "@/lib/pubg";
 
 interface SeasonTab { id: string; label: string; isCurrentSeason: boolean; }
@@ -100,7 +101,7 @@ export default function LeaderboardPage() {
   };
 
   return (
-    <main className="bg-[#1a2d3f] min-h-screen overflow-x-hidden">
+    <main className="bg-[#090f1e] min-h-screen overflow-x-hidden">
       <Navbar />
       <div className="absolute inset-0 pointer-events-none"
         style={{ background: "radial-gradient(ellipse 80% 40% at 50% 0%, rgba(99,179,237,0.04) 0%, transparent 70%)" }} />
@@ -264,11 +265,12 @@ export default function LeaderboardPage() {
         </motion.div>
 
         <div className="mt-6 text-center">
-          <Link href="/" className="text-xs font-mono text-slate-600 hover:text-cyan-400 transition-colors tracking-widest uppercase">
+          <Link href="/" className="text-xs font-mono text-slate-400 hover:text-cyan-400 transition-colors tracking-widest uppercase">
             ← 전적 조회로 돌아가기
           </Link>
         </div>
       </div>
+      <Footer />
     </main>
   );
 }

@@ -27,7 +27,7 @@ export default function Navbar({ onReset }: { onReset?: () => void }) {
       transition={{ duration: 0.7, ease: "easeOut" }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-400 ${
         scrolled
-          ? "bg-[#1a2d3f]/90 backdrop-blur-2xl border-b border-cyan-500/20"
+          ? "bg-[#090f1e]/92 backdrop-blur-2xl border-b border-cyan-500/20"
           : "bg-transparent backdrop-blur-sm"
       }`}
     >
@@ -60,11 +60,12 @@ export default function Navbar({ onReset }: { onReset?: () => void }) {
           {/* Mobile hamburger */}
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="md:hidden flex flex-col gap-1.5 p-1"
+            className="md:hidden flex flex-col justify-center items-center gap-[5px] min-w-[44px] min-h-[44px] p-2.5 rounded border border-cyan-500/20 bg-cyan-500/5 active:bg-cyan-500/15 transition-colors"
+            aria-label="메뉴"
           >
-            <span className={`block w-5 h-0.5 bg-cyan-400 transition-all ${menuOpen ? "rotate-45 translate-y-2" : ""}`} />
-            <span className={`block w-5 h-0.5 bg-cyan-400 transition-all ${menuOpen ? "opacity-0" : ""}`} />
-            <span className={`block w-5 h-0.5 bg-cyan-400 transition-all ${menuOpen ? "-rotate-45 -translate-y-2" : ""}`} />
+            <span className={`block w-5 h-[2px] bg-cyan-400 rounded-full transition-all duration-200 ${menuOpen ? "rotate-45 translate-y-[7px]" : ""}`} />
+            <span className={`block w-5 h-[2px] bg-cyan-400 rounded-full transition-all duration-200 ${menuOpen ? "opacity-0 scale-x-0" : ""}`} />
+            <span className={`block w-5 h-[2px] bg-cyan-400 rounded-full transition-all duration-200 ${menuOpen ? "-rotate-45 -translate-y-[7px]" : ""}`} />
           </button>
         </div>
 

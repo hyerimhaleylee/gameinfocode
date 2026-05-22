@@ -17,7 +17,7 @@ const PERSONAS = [
     id: "warlord",
     title: "전장의 지배자, 불멸의 수호신",
     subtitle: "LORD OF BATTLEFIELD",
-    desc: "총구는 적을 향하고, 손은 동료를 향한다. 살육과 구원을 동시에 행하는 자, 이 전장에서 그는 신과 다름없다.",
+    desc: "KD 1.9 이상, 게임당 부활 0.4회 이상. 총구는 적을 향하고, 손은 동료를 향한다. 살육과 구원을 동시에 행하는 자.",
     comment: "적은 내가 죽이고, 팀원은 내가 살린다",
     color: "blue" as const,
     stats: { Combat: 92, Survival: 85, Mobility: 75, Squadplay: 88, Consistency: 88, Adaptability: 85 },
@@ -210,7 +210,7 @@ export default function PersonaCards() {
                   <h3 className="text-white font-bold text-lg leading-tight mb-0.5">
                     {p.title}
                   </h3>
-                  <p className="text-xs tracking-[0.15em] text-slate-600 mb-3 font-mono">
+                  <p className="text-xs tracking-[0.15em] text-slate-400 mb-3 font-mono">
                     {p.subtitle}
                   </p>
                   <p className="text-slate-300 text-[0.82rem] leading-relaxed flex-1">
@@ -218,8 +218,8 @@ export default function PersonaCards() {
                   </p>
 
                   {/* AI comment */}
-                  <div className="mt-4 pt-3 border-t border-white/5">
-                    <p className="text-xs font-mono text-slate-600 mb-1">// AI Comment</p>
+                  <div className="mt-4 pt-3 border-t border-white/8">
+                    <p className="text-xs font-mono text-slate-500 mb-1">// AI Comment</p>
                     <p className={`text-xs italic ${ACCENT[p.color]}`}>
                       "{p.comment}"
                     </p>
