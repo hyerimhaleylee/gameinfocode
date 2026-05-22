@@ -317,7 +317,7 @@ export async function getLeaderboard(
 ): Promise<LeaderboardEntry[]> {
   const res = await pubgFetch(
     `${BASE}/${shard}/leaderboards/${seasonId}/${gameMode}`,
-    { next: { revalidate: 3600 } } as RequestInit
+    { cache: "no-store" } as RequestInit
   );
   const resText = await res.text();
   // 400/404: PUBG API has no leaderboard data for this season/mode — return empty gracefully

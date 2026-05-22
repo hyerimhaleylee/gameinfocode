@@ -12,10 +12,6 @@ interface SeasonTab { id: string; label: string; isCurrentSeason: boolean; }
 const MODES = [
   { key: "squad-fpp", label: "스쿼드 1인칭" },
   { key: "squad",     label: "스쿼드 3인칭" },
-  { key: "duo-fpp",  label: "듀오 1인칭" },
-  { key: "duo",      label: "듀오 3인칭" },
-  { key: "solo-fpp", label: "솔로 1인칭" },
-  { key: "solo",     label: "솔로 3인칭" },
 ];
 
 
@@ -191,8 +187,8 @@ export default function LeaderboardPage() {
             </div>
           ) : entries.length === 0 && !loading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-2">
-              <p className="text-slate-600 text-sm font-mono">현재 시즌 리더보드 데이터가 없습니다.</p>
-              <p className="text-slate-700 text-[10px] font-mono">시즌 종료 후 또는 PUBG API 업데이트 시 반영됩니다.</p>
+              <p className="text-slate-600 text-sm font-mono">해당 모드는 랭크 리더보드를 지원하지 않습니다.</p>
+              <p className="text-slate-700 text-[10px] font-mono">스쿼드 1인칭(squad-fpp) 모드만 PUBG API에서 지원됩니다.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
