@@ -250,8 +250,8 @@ const PERSONA_DEFS: Array<{
     quote: "이 게임이 잘못된 건지, 당신이 너무 잘하는 건지. 어쨌든 당신 앞에 서면 다들 죽는다.",
     type: "APEX PREDATOR",
     tier: "DIAMOND",
-    conditionLabel: "KD 3.5↑ · 승률 10%↑ · 평딜 350↑",
-    match: (s) => s.kd >= 3.5 && s.winRate >= 10 && s.avgDamage >= 350,
+    conditionLabel: "KD 5.0↑ · 승률 12%↑ · 평딜 500↑",
+    match: (s) => s.kd >= 5.0 && s.winRate >= 12 && s.avgDamage >= 500,
   },
   {
     id: "warlord",
@@ -310,8 +310,8 @@ const PERSONA_DEFS: Array<{
     quote: "팀원이 쓰러졌다. 나는 계속 달린다. 미안하진 않다.",
     type: "LONE WOLF",
     tier: "SILVER",
-    conditionLabel: "KD 1.5↑ · 승률 2%↑ · 부활 0.35↓/게임",
-    match: (s) => s.revivesPerGame < 0.35 && s.kd >= 1.5 && s.winRate >= 2,
+    conditionLabel: "KD 1.2↑ · 평딜 210↑ · 생존 17분↓ · 부활 0.28↓/게임",
+    match: (s) => s.kd >= 1.2 && s.avgDamage >= 210 && s.avgSurvivalMin < 17 && s.revivesPerGame < 0.28,
   },
   {
     id: "assault",
