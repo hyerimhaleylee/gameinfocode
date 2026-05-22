@@ -12,23 +12,27 @@ export default function Footer({ onReset }: { onReset?: () => void }) {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
           {/* Brand */}
           <div className="md:col-span-2">
-            <Link href="/" onClick={onReset} className="flex items-center gap-2.5 mb-4 w-fit">
-              {/* Static radar icon */}
-              <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-                <circle cx="14" cy="14" r="12" stroke="rgba(34,211,238,0.22)" strokeWidth="0.8" />
-                <circle cx="14" cy="14" r="7.5" stroke="rgba(34,211,238,0.14)" strokeWidth="0.6" strokeDasharray="2 3" />
-                <circle cx="14" cy="14" r="3.5" stroke="rgba(34,211,238,0.12)" strokeWidth="0.5" />
-                <line x1="14" y1="2" x2="14" y2="26" stroke="rgba(34,211,238,0.07)" strokeWidth="0.6" />
-                <line x1="2" y1="14" x2="26" y2="14" stroke="rgba(34,211,238,0.07)" strokeWidth="0.6" />
-                <line x1="14" y1="14" x2="25" y2="8.5" stroke="rgba(34,211,238,0.5)" strokeWidth="1.2" strokeLinecap="round" />
-                <circle cx="21" cy="9.5" r="2.5" fill="#22d3ee" opacity="0.12" />
-                <circle cx="21" cy="9.5" r="1.3" fill="#22d3ee" opacity="0.75" />
-              </svg>
+            <Link href="/" onClick={onReset} className="flex items-center gap-2.5 mb-4 w-fit group">
+              {/* HUD bracket frame + mini radar chart */}
+              <div className="relative w-8 h-8 flex items-center justify-center">
+                <div className="absolute top-0 left-0 w-2.5 h-2.5 border-t-[1.5px] border-l-[1.5px] border-cyan-400/50" />
+                <div className="absolute top-0 right-0 w-2.5 h-2.5 border-t-[1.5px] border-r-[1.5px] border-cyan-400/50" />
+                <div className="absolute bottom-0 left-0 w-2.5 h-2.5 border-b-[1.5px] border-l-[1.5px] border-cyan-400/50" />
+                <div className="absolute bottom-0 right-0 w-2.5 h-2.5 border-b-[1.5px] border-r-[1.5px] border-cyan-400/50" />
+                <svg width="19" height="19" viewBox="0 0 22 22" fill="none">
+                  <polygon points="11,2.5 17.7,6.25 17.7,13.75 11,17.5 4.3,13.75 4.3,6.25"
+                    fill="none" stroke="rgba(34,211,238,0.18)" strokeWidth="0.6" />
+                  <polygon points="11,5.5 14.8,7.6 14.8,12.4 11,14.5 7.2,12.4 7.2,7.6"
+                    fill="none" stroke="rgba(34,211,238,0.1)" strokeWidth="0.5" />
+                  <polygon points="11,3.5 16.5,8 16,13.5 11,16.8 5.5,13 6.5,7.5"
+                    fill="rgba(34,211,238,0.12)" stroke="#22d3ee" strokeWidth="0.9" />
+                  <circle cx="11" cy="11" r="1.2" fill="#22d3ee" />
+                </svg>
+              </div>
               {/* Stacked text */}
               <div className="flex flex-col justify-center gap-[2px] leading-none">
-                <span className="text-[8px] font-mono tracking-[0.55em] text-slate-400 uppercase">GAME</span>
-                <span className="text-[13px] font-black tracking-[0.1em] text-cyan-400 uppercase"
-                  style={{ textShadow: "0 0 12px rgba(34,211,238,0.6)" }}>CODE</span>
+                <span className="text-[8px] font-mono tracking-[0.5em] text-slate-400">GAME</span>
+                <span className="text-[13px] font-black tracking-[0.08em] text-white">CODE</span>
               </div>
             </Link>
             <p className="text-slate-400 text-sm leading-relaxed max-w-xs mb-5">
