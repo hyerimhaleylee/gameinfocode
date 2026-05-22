@@ -564,3 +564,13 @@ export function calculateRadarValues(s: ProcessedStats): number[] {
 export function getPersonaArchetypeRadar(id: string): number[] {
   return PERSONA_DEFS.find((p) => p.id === id)?.archetypeRadar ?? [50, 50, 50, 50, 50, 50];
 }
+
+export function getPersonaStaticInfo(id: string) {
+  const p = PERSONA_DEFS.find((d) => d.id === id);
+  if (!p) return null;
+  return {
+    conditionLabel: p.conditionLabel,
+    type: p.type,
+    tier: p.tier,
+  };
+}

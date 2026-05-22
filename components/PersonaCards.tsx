@@ -1,8 +1,9 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { getPersonaArchetypeRadar, getPersonaStaticInfo } from "@/lib/persona";
 import MiniRadarChart from "./MiniRadarChart";
-import { getPersonaArchetypeRadar } from "@/lib/persona";
 
 const PERSONAS = [
   {
@@ -22,6 +23,14 @@ const PERSONAS = [
     color: "blue" as const,
   },
   {
+    id: "sense",
+    title: "센스쟁이, 게임을 읽는 눈을 가진 자",
+    subtitle: "SENSE MASTER",
+    desc: "KDA 2.0 이상, 어시스트 0.5회 이상, KD 1.7 이상. 팀 전체를 읽는 게임 IQ의 소유자.",
+    comment: "나 혼자 잘해봤자 지는 게임. 팀 전체를 이기게 하는 게 진짜 실력이다.",
+    color: "cyan" as const,
+  },
+  {
     id: "aim_god",
     title: "에임만 신, 뇌는 그냥 장식품",
     subtitle: "AIM GOD, BRAIN OPTIONAL",
@@ -35,14 +44,6 @@ const PERSONAS = [
     subtitle: "HOTDROP FANATIC",
     desc: "KD 1.6 이상, 평딜 220 이상, 평균 생존 12분 미만. 착지하자마자 교전이 시작된다.",
     comment: "착지하자마자 총소리. 그게 좋다. 조용한 게임은 내 게임이 아니다.",
-    color: "cyan" as const,
-  },
-  {
-    id: "sense",
-    title: "센스쟁이, 게임을 읽는 눈을 가진 자",
-    subtitle: "SENSE MASTER",
-    desc: "KDA 2.0 이상, 어시스트 0.5회 이상, KD 1.7 이상. 팀 전체를 읽는 게임 IQ의 소유자.",
-    comment: "나 혼자 잘해봤자 지는 게임. 팀 전체를 이기게 하는 게 진짜 실력이다.",
     color: "cyan" as const,
   },
   {
@@ -135,14 +136,33 @@ const PERSONAS = [
   },
 ];
 
-
 const ACCENT: Record<string, string> = {
   cyan: "text-cyan-400",
   purple: "text-purple-400",
   blue: "text-blue-400",
 };
 
+const ACCENT_BG: Record<string, string> = {
+  cyan: "bg-cyan-400",
+  purple: "bg-purple-400",
+  blue: "bg-blue-400",
+};
+
+const RADAR_KEYS = ["Combat", "Teamwork", "Survival", "Management", "Aggression", "Physical"];
+
+const AXIS_GUIDE = [
+  { key: "Combat",     label: "전투력",  desc: "KD + 딜량. 교전에서 얼마나 강한가" },
+  { key: "Teamwork",   label: "팀워크",  desc: "어시스트 + 부활. 팀에 얼마나 기여하는가" },
+  { key: "Survival",   label: "생존력",  desc: "승률 + 생존시간. 끝까지 살아남는가" },
+  { key: "Management", label: "운영력",  desc: "탑10 진입률 + 이동거리. 자기장을 얼마나 읽는가" },
+  { key: "Aggression", label: "공격성",  desc: "시간당 딜량. 얼마나 먼저 싸움에 뛰어드는가" },
+  { key: "Physical",   label: "피지컬",  desc: "킬당 딜 효율. 한 발 한 발 얼마나 정확한가" },
+];
+
 export default function PersonaCards() {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selected = selectedId ? PERSONAS.find((p) => p.id === selectedId) : null;
+
   return (
     <section className="py-28 px-4">
       <div className="max-w-7xl mx-auto">
@@ -164,63 +184,196 @@ export default function PersonaCards() {
           </p>
         </motion.div>
 
+        {/* 축 가이드 스트립 */}
+        <div className="mb-10 p-4 border border-white/6 bg-white/[0.02]">
+          <p className="text-[10px] tracking-[0.2em] text-slate-500 font-mono mb-3 uppercase">// Radar Axes Guide</p>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            {AXIS_GUIDE.map((ax) => (
+              <div key={ax.key} className="flex flex-col gap-1">
+                <span className="text-xs font-bold text-white">{ax.label}</span>
+                <span className="text-[10px] text-slate-500 leading-snug">{ax.desc}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 카드 그리드 */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-          {PERSONAS.map((p, i) => {
-            return (
-              <motion.div
-                key={p.id}
-                initial={{ opacity: 0, y: 28 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1, duration: 0.55 }}
-                whileHover={{ y: -10, scale: 1.025 }}
-                className="relative group cursor-pointer"
-              >
-                {/* Glow on hover */}
-                <div
-                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-                  style={{ boxShadow: "0 0 40px rgba(99,179,237,0.15)", borderRadius: 0 }}
-                />
+          {PERSONAS.map((p, i) => (
+            <motion.div
+              key={p.id}
+              initial={{ opacity: 0, y: 28 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1, duration: 0.55 }}
+              whileHover={{ y: -10, scale: 1.025 }}
+              onClick={() => setSelectedId(p.id)}
+              className="relative group cursor-pointer"
+            >
+              {/* Glow on hover */}
+              <div
+                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                style={{ boxShadow: "0 0 40px rgba(99,179,237,0.15)", borderRadius: 0 }}
+              />
 
-                <div className="relative h-full border border-white/8 glass-card p-5 flex flex-col transition-all duration-300">
-                  {/* HUD corner top-right */}
-                  <div className="absolute top-3 right-3 w-4 h-4 border-t border-r border-cyan-500/20" />
+              <div className="relative h-full border border-white/8 glass-card p-5 flex flex-col transition-all duration-300">
+                {/* HUD corner top-right */}
+                <div className="absolute top-3 right-3 w-4 h-4 border-t border-r border-cyan-500/20" />
 
-                  {/* Radar */}
-                  <div className="flex justify-center my-3">
-                    <MiniRadarChart
-                      stats={Object.fromEntries(
-                        ["Combat","Teamwork","Survival","Management","Aggression","Physical"]
-                          .map((k, i) => [k, getPersonaArchetypeRadar(p.id)[i]])
-                      )}
-                      color={p.color}
-                    />
-                  </div>
-
-                  {/* Title */}
-                  <h3 className="text-white font-bold text-lg leading-tight mb-0.5">
-                    {p.title}
-                  </h3>
-                  <p className="text-xs tracking-[0.15em] text-slate-400 mb-3 font-mono">
-                    {p.subtitle}
-                  </p>
-                  <p className="text-slate-300 text-[0.82rem] leading-relaxed flex-1">
-                    {p.desc}
-                  </p>
-
-                  {/* AI comment */}
-                  <div className="mt-4 pt-3 border-t border-white/8">
-                    <p className="text-xs font-mono text-slate-500 mb-1">// AI Comment</p>
-                    <p className={`text-xs italic ${ACCENT[p.color]}`}>
-                      "{p.comment}"
-                    </p>
-                  </div>
+                {/* Radar */}
+                <div className="flex justify-center my-3">
+                  <MiniRadarChart
+                    stats={Object.fromEntries(
+                      RADAR_KEYS.map((k, idx) => [k, getPersonaArchetypeRadar(p.id)[idx]])
+                    )}
+                    color={p.color}
+                  />
                 </div>
-              </motion.div>
-            );
-          })}
+
+                {/* Title */}
+                <h3 className="text-white font-bold text-lg leading-tight mb-0.5">
+                  {p.title}
+                </h3>
+                <p className="text-xs tracking-[0.15em] text-slate-400 mb-3 font-mono">
+                  {p.subtitle}
+                </p>
+                <p className="text-slate-300 text-[0.82rem] leading-relaxed flex-1">
+                  {p.desc}
+                </p>
+
+                {/* AI comment */}
+                <div className="mt-4 pt-3 border-t border-white/8">
+                  <p className="text-xs font-mono text-slate-500 mb-1">// AI Comment</p>
+                  <p className={`text-xs italic ${ACCENT[p.color]}`}>
+                    "{p.comment}"
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          ))}
         </div>
       </div>
+
+      {/* 모달 */}
+      <AnimatePresence>
+        {selected && (
+          <>
+            {/* 백드롭 */}
+            <motion.div
+              key="backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedId(null)}
+              className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm"
+            />
+
+            {/* 모달 카드 */}
+            <motion.div
+              key="modal"
+              initial={{ opacity: 0, scale: 0.96, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 16 }}
+              transition={{ duration: 0.25 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
+            >
+              <div
+                className="relative w-full max-w-2xl glass-card border border-white/10 p-6 md:p-8 pointer-events-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* 닫기 버튼 */}
+                <button
+                  onClick={() => setSelectedId(null)}
+                  className="absolute top-4 right-4 text-slate-500 hover:text-white transition-colors text-lg"
+                >
+                  ✕
+                </button>
+
+                {/* HUD 코너 장식 */}
+                <div className="absolute top-3 left-3 w-4 h-4 border-t border-l border-cyan-500/30" />
+                <div className="absolute bottom-3 right-3 w-4 h-4 border-b border-r border-cyan-500/30" />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                  {/* 왼쪽: 레이더 + 축 점수바 */}
+                  <div className="flex flex-col items-center gap-4">
+                    <MiniRadarChart
+                      stats={Object.fromEntries(
+                        RADAR_KEYS.map((k, idx) => [k, getPersonaArchetypeRadar(selected.id)[idx]])
+                      )}
+                      color={selected.color}
+                    />
+
+                    {/* 6개 축 점수바 */}
+                    <div className="w-full space-y-2">
+                      {AXIS_GUIDE.map((ax, idx) => {
+                        const val = getPersonaArchetypeRadar(selected.id)[idx];
+                        return (
+                          <div key={ax.key} className="flex items-center gap-2">
+                            <span className="text-[10px] text-slate-400 w-12 shrink-0">{ax.label}</span>
+                            <div className="flex-1 h-1 bg-white/8 rounded-full overflow-hidden">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${val}%` }}
+                                transition={{ duration: 0.6, delay: idx * 0.05 }}
+                                className={`h-full rounded-full ${ACCENT_BG[selected.color]}`}
+                              />
+                            </div>
+                            <span className="text-[10px] text-slate-500 w-6 text-right">{val}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 오른쪽: 텍스트 정보 */}
+                  <div className="flex flex-col gap-3">
+                    {/* 배지 */}
+                    {(() => {
+                      const info = getPersonaStaticInfo(selected.id);
+                      return info ? (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[10px] font-mono px-2 py-0.5 border border-white/10 text-slate-400">{info.type}</span>
+                          <span className="text-[10px] font-mono px-2 py-0.5 border border-white/10 text-slate-400">{info.tier}</span>
+                        </div>
+                      ) : null;
+                    })()}
+
+                    {/* 제목 */}
+                    <div>
+                      <h3 className="text-white font-bold text-xl leading-tight">{selected.title}</h3>
+                      <p className="text-[11px] tracking-[0.15em] text-slate-400 font-mono mt-1">{selected.subtitle}</p>
+                    </div>
+
+                    {/* 설명 */}
+                    <p className="text-slate-300 text-sm leading-relaxed">{selected.desc}</p>
+
+                    {/* 조건 */}
+                    {(() => {
+                      const info = getPersonaStaticInfo(selected.id);
+                      return info ? (
+                        <div className="pt-2 border-t border-white/6">
+                          <p className="text-[10px] text-slate-500 font-mono mb-1">// 판정 조건</p>
+                          <p className="text-xs text-slate-400">{info.conditionLabel}</p>
+                        </div>
+                      ) : null;
+                    })()}
+
+                    {/* AI 코멘트 */}
+                    <div className="pt-2 border-t border-white/6 mt-auto">
+                      <p className="text-[10px] text-slate-500 font-mono mb-1">// AI Comment</p>
+                      <p className={`text-xs italic ${ACCENT[selected.color]}`}>
+                        "{selected.comment}"
+                      </p>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </section>
   );
 }
