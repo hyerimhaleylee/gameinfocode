@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 
-const AXES = ["Combat", "Survival", "Mobility", "Squadplay", "Consistency", "Adaptability"];
+const AXES = ["Combat", "Teamwork", "Survival", "Management", "Aggression", "Physical"];
 const VALUES = [85, 60, 72, 55, 78, 68];
 
 interface HexRadarProps {

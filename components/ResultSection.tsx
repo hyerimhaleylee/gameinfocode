@@ -6,7 +6,7 @@ import type { PlayerApiResponse, ModeRow, RankedModeRow } from "@/lib/persona";
 import type { MatchEntry } from "@/lib/pubg";
 import WeaponTab from "./WeaponTab";
 
-const AXES = ["Combat", "Survival", "Mobility", "Squadplay", "Consistency", "Adaptability"];
+const AXES = ["Combat", "Teamwork", "Survival", "Management", "Aggression", "Physical"];
 
 const FALLBACK: PlayerApiResponse = {
   name: "Unknown_Player",

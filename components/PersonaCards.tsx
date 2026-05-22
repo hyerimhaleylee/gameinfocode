@@ -190,7 +190,7 @@ export default function PersonaCards() {
                   <div className="flex justify-center my-3">
                     <MiniRadarChart
                       stats={Object.fromEntries(
-                        ["Combat","Survival","Mobility","Squadplay","Consistency","Adaptability"]
+                        ["Combat","Teamwork","Survival","Management","Aggression","Physical"]
                           .map((k, i) => [k, getPersonaArchetypeRadar(p.id)[i]])
                       )}
                       color={p.color}
