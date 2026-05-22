@@ -66,7 +66,6 @@ export interface Persona {
   quote: string;
   type: string;
   tier: string;
-  conditionLabel: string;
 }
 
 export interface RankedTier {
@@ -240,7 +239,6 @@ const PERSONA_DEFS: Array<{
   quote: string;
   type: string;
   tier: string;
-  conditionLabel: string;
   match: (s: ProcessedStats) => boolean;
   archetypeRadar: [number, number, number, number, number, number];
 }> = [
@@ -251,7 +249,6 @@ const PERSONA_DEFS: Array<{
     quote: "이 게임이 잘못된 건지, 당신이 너무 잘하는 건지. 어쨌든 당신 앞에 서면 다들 죽는다.",
     type: "APEX PREDATOR",
     tier: "DIAMOND",
-    conditionLabel: "KD 5.0↑ · 승률 12%↑ · 평딜 500↑",
     match: (s) => s.kd >= 5.0 && s.winRate >= 12 && s.avgDamage >= 500,
     archetypeRadar: [100, 49, 85, 98, 100, 98],
   },
@@ -262,7 +259,6 @@ const PERSONA_DEFS: Array<{
     quote: "총구는 적을 향하고, 손은 동료를 향한다. 살육과 구원을 동시에 행하는 자, 이 전장에서 그는 신과 다름없다.",
     type: "IMMORTAL GUARDIAN",
     tier: "DIAMOND",
-    conditionLabel: "KD 1.9↑ · 부활 0.4↑/게임",
     match: (s) => s.kd >= 1.9 && s.revivesPerGame >= 0.4,
     archetypeRadar: [83, 77, 69, 89, 91, 80],
   },
@@ -273,7 +269,6 @@ const PERSONA_DEFS: Array<{
     quote: "나 혼자 잘해봤자 지는 게임. 팀 전체를 이기게 하는 게 진짜 실력이다.",
     type: "IQ PLAYER",
     tier: "GOLD",
-    conditionLabel: "KDA 2.2↑ · 어시스트 0.6↑/게임 · KD 2.0↑",
     match: (s) => s.kda >= 2.2 && s.assistsPerGame >= 0.6 && s.kd >= 2.0,
     archetypeRadar: [85, 61, 73, 91, 88, 85],
   },
@@ -284,7 +279,6 @@ const PERSONA_DEFS: Array<{
     quote: "방아쇠만 당기면 된다. 나머지는... 팀원이 알아서 하겠지.",
     type: "MECHANICAL GENIUS",
     tier: "GOLD",
-    conditionLabel: "KD 2.5↑ · 평딜 280↑ · 어시스트 0.8↓/게임",
     match: (s) => s.kd >= 2.5 && s.assistsPerGame < 0.8 && s.avgDamage >= 280,
     archetypeRadar: [94, 40, 65, 83, 95, 89],
   },
@@ -295,7 +289,6 @@ const PERSONA_DEFS: Array<{
     quote: "착지하자마자 총소리. 그게 좋다. 조용한 게임은 내 게임이 아니다.",
     type: "HOT DROP ADDICT",
     tier: "GOLD",
-    conditionLabel: "KD 1.8↑ · 평딜 220↑ · 평균생존 12분↓",
     match: (s) => s.kd >= 1.8 && s.avgDamage >= 220 && s.avgSurvivalMin < 12,
     archetypeRadar: [68, 51, 44, 70, 96, 77],
   },
@@ -306,7 +299,6 @@ const PERSONA_DEFS: Array<{
     quote: "스코프 안에 들어온 순간, 이미 당신은 죽었다.",
     type: "PRECISION MARKSMAN",
     tier: "GOLD",
-    conditionLabel: "헤드샷 26%↑ · KD 1.5↑",
     match: (s) => s.headshotRate >= 26 && s.kd >= 1.5,
     archetypeRadar: [58, 52, 53, 82, 74, 74],
   },
@@ -317,7 +309,6 @@ const PERSONA_DEFS: Array<{
     quote: "팀원이 쓰러졌다. 나는 계속 달린다. 미안하진 않다.",
     type: "LONE WOLF",
     tier: "SILVER",
-    conditionLabel: "KD 1.2↑ · 평딜 210↑ · 생존 17분↓ · 부활 0.28↓/게임",
     match: (s) => s.kd >= 1.2 && s.avgDamage >= 210 && s.avgSurvivalMin < 17 && s.revivesPerGame < 0.28,
     archetypeRadar: [57, 45, 44, 77, 80, 69],
   },
@@ -328,7 +319,6 @@ const PERSONA_DEFS: Array<{
     quote: "생각은 나중에. 일단 들어가고 본다. 안 되면 그때 생각한다.",
     type: "AGGRESSIVE RIFLER",
     tier: "GOLD",
-    conditionLabel: "KD 1.2↑ · 평딜 210↑ · 평균생존 17분↓",
     match: (s) => s.kd >= 1.2 && s.avgDamage >= 210 && s.avgSurvivalMin < 17,
     archetypeRadar: [55, 64, 48, 84, 78, 66],
   },
@@ -339,7 +329,6 @@ const PERSONA_DEFS: Array<{
     quote: "싸움은 안 한다. 자기장이 알아서 죽여주기 때문이다.",
     type: "SURVIVAL SPECIALIST",
     tier: "GOLD",
-    conditionLabel: "승률 6%↑ · 평균 생존 13분↑ · KD 1.0↑",
     match: (s) => s.winRate >= 6 && s.avgSurvivalMin >= 13 && s.kd >= 1.0,
     archetypeRadar: [42, 56, 65, 93, 47, 71],
   },
@@ -350,7 +339,6 @@ const PERSONA_DEFS: Array<{
     quote: "두 발로 뛰는 건 시간 낭비다. 네 바퀴면 모든 게 해결된다.",
     type: "MOBILITY SPECIALIST",
     tier: "SILVER",
-    conditionLabel: "주행거리 2100m↑/게임 · KD 0.8↑",
     match: (s) => s.rideDistPerGame >= 2100 && s.kd >= 0.8,
     archetypeRadar: [38, 54, 48, 92, 45, 65],
   },
@@ -361,7 +349,6 @@ const PERSONA_DEFS: Array<{
     quote: "총 싸움은 자신 없다. 그냥 숨어있었는데... 다들 죽어있었다.",
     type: "LUCKY SURVIVOR",
     tier: "SILVER",
-    conditionLabel: "승률 5%↑ · KD 1.0↓ · 평딜 170↓",
     match: (s) => s.winRate >= 5 && s.kd < 1.0 && s.avgDamage < 170,
     archetypeRadar: [27, 53, 56, 84, 37, 65],
   },
@@ -372,7 +359,6 @@ const PERSONA_DEFS: Array<{
     quote: "내가 살아있는 한, 팀원도 살아있다. 이게 내 전쟁이다.",
     type: "TACTICAL SUPPORT",
     tier: "SILVER",
-    conditionLabel: "KD 1.2↓ · 부활 0.35↑/게임 · 어시스트 0.3↑/게임",
     match: (s) => s.kd < 1.2 && s.revivesPerGame >= 0.35 && s.assistsPerGame >= 0.3,
     archetypeRadar: [35, 67, 39, 78, 55, 62],
   },
@@ -383,7 +369,6 @@ const PERSONA_DEFS: Array<{
     quote: "차는 시끄럽고 눈에 띈다. 걸어서 가면 아무도 모른다.",
     type: "GROUND WALKER",
     tier: "SILVER",
-    conditionLabel: "도보 1200m↑/게임 · 주행 1200m↓/게임",
     match: (s) => s.walkDistPerGame >= 1200 && s.rideDistPerGame < 1200,
     archetypeRadar: [32, 42, 36, 65, 50, 72],
   },
@@ -394,7 +379,6 @@ const PERSONA_DEFS: Array<{
     quote: "총소리가 나면 숨는다. 자기장이 오면 피한다. 그게 전략의 전부다.",
     type: "PASSIVE SURVIVOR",
     tier: "BRONZE",
-    conditionLabel: "TOP10 18%↑ · KD 1.05↓",
     match: (s) => s.top10Rate >= 18 && s.kd < 1.05,
     archetypeRadar: [30, 49, 34, 72, 50, 61],
   },
@@ -405,7 +389,6 @@ const PERSONA_DEFS: Array<{
     quote: "100판을 해도 아직 모르겠다. 그래도 내일 또 할 거다.",
     type: "PERSISTENT PLAYER",
     tier: "BRONZE",
-    conditionLabel: "150판↑ · KD 1.5↓ · 평딜 185↓",
     match: (s) => s.roundsPlayed >= 150 && s.kd < 1.5 && s.avgDamage < 185,
     archetypeRadar: [36, 47, 35, 63, 61, 71],
   },
@@ -416,7 +399,6 @@ const PERSONA_DEFS: Array<{
     quote: "아이템은 잘 모은다. 그걸 어떻게 쓰는지가... 아직 연구 중이다.",
     type: "DEVELOPING WARRIOR",
     tier: "BRONZE",
-    conditionLabel: "분석 중...",
     match: () => true,
     archetypeRadar: [42, 50, 36, 67, 69, 68],
   },
@@ -431,7 +413,6 @@ export function determinePersona(s: ProcessedStats): Persona {
     quote: found.quote,
     type: found.type,
     tier: found.tier,
-    conditionLabel: found.conditionLabel,
   };
 }
 

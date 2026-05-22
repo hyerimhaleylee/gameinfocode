@@ -14,7 +14,7 @@ const FALLBACK: PlayerApiResponse = {
   persona: {
     id: "rookie", title: "4렙 가방, 아이템은 만렙 전투력은 1렙", titleEn: "LVL4 BACKPACK",
     quote: "아이템은 잘 모은다. 그걸 어떻게 쓰는지가... 아직 연구 중이다.",
-    type: "DEVELOPING WARRIOR", tier: "BRONZE", conditionLabel: "분석 중...",
+    type: "DEVELOPING WARRIOR", tier: "BRONZE",
   },
   radarValues: [30, 30, 30, 30, 30, 30],
   insights: [], recommendation: "",
@@ -486,12 +486,6 @@ export default function ResultSection({ playerName, playerData, fetchError, seas
                       <span className="w-1 h-1 rounded-full bg-violet-400" />
                       <span className="text-[11px] font-mono font-semibold tracking-widest text-violet-300">{d.persona.type}</span>
                     </div>
-                    {d.persona.conditionLabel && (
-                      <div className="mt-2 flex items-center gap-1.5">
-                        <span className="text-[9px] font-mono text-slate-600 tracking-widest">// 판정 조건</span>
-                        <span className="text-[10px] font-mono text-slate-500">{d.persona.conditionLabel}</span>
-                      </div>
-                    )}
                   </div>
 
                   {/* Right: stats */}
