@@ -309,7 +309,7 @@ export default function AnalysisOverlay({ playerName, onComplete }: Props) {
 
           {/* Bottom label */}
           <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-xs font-mono text-slate-700 tracking-widest">
-            gameinfocode.com
+            gameinfocode.vercel.app
           </div>
         </motion.div>
       )}

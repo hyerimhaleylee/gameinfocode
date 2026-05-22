@@ -149,6 +149,7 @@ export default function WeaponTab({ accountId, shard }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [source, setSource] = useState<Source>("mastery");
+  const [showDataInfo, setShowDataInfo] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -220,23 +221,30 @@ export default function WeaponTab({ accountId, shard }: Props) {
         ))}
       </div>
 
-      {/* How the system works */}
-      <div className="px-3 py-3 rounded-sm border border-white/6 space-y-1.5"
-        style={{ background: "rgba(255,255,255,0.02)" }}>
-        <p className="text-[10px] font-mono text-slate-500 tracking-[0.15em]">// 데이터 수집 방식</p>
-        <ul className="space-y-1">
-          {[
-            "PUBG API는 최신 14판의 매치 ID만 제공합니다. 과거 전체 매치를 직접 가져오는 것은 불가능합니다.",
-            "검색할 때마다 최신 14판 ID를 서버에 누적 저장합니다. 반복 검색할수록 분석 가능한 매치 수가 늘어납니다.",
-            "한 번 분석된 매치는 캐시에 영구 저장되어 다음 검색 시 즉시 반영됩니다.",
-            "최대 200판까지 누적됩니다. 전체 기간 데이터는 상단 'Weapon Mastery' 탭을 활용하세요.",
-          ].map((text, i) => (
-            <li key={i} className="flex items-start gap-2">
-              <span className="text-cyan-400/40 text-[10px] font-mono mt-0.5 shrink-0">{String(i + 1).padStart(2, "0")}</span>
-              <span className="text-slate-600 text-[10px] font-mono leading-relaxed">{text}</span>
-            </li>
-          ))}
-        </ul>
+      {/* How the system works — collapsible */}
+      <div className="rounded-sm border border-white/6" style={{ background: "rgba(255,255,255,0.02)" }}>
+        <button
+          onClick={() => setShowDataInfo((v) => !v)}
+          className="w-full flex items-center justify-between px-3 py-2.5 text-left"
+        >
+          <p className="text-[10px] font-mono text-slate-500 tracking-[0.15em]">// 데이터 수집 방식</p>
+          <span className="text-[10px] font-mono text-slate-600">{showDataInfo ? "▲" : "▼"}</span>
+        </button>
+        {showDataInfo && (
+          <ul className="px-3 pb-3 space-y-1">
+            {[
+              "PUBG API는 최신 14판의 매치 ID만 제공합니다. 과거 전체 매치를 직접 가져오는 것은 불가능합니다.",
+              "검색할 때마다 최신 14판 ID를 서버에 누적 저장합니다. 반복 검색할수록 분석 가능한 매치 수가 늘어납니다.",
+              "한 번 분석된 매치는 캐시에 영구 저장되어 다음 검색 시 즉시 반영됩니다.",
+              "최대 200판까지 누적됩니다. 전체 기간 데이터는 상단 'Weapon Mastery' 탭을 활용하세요.",
+            ].map((text, i) => (
+              <li key={i} className="flex items-start gap-2">
+                <span className="text-cyan-400/40 text-[10px] font-mono mt-0.5 shrink-0">{String(i + 1).padStart(2, "0")}</span>
+                <span className="text-slate-600 text-[10px] font-mono leading-relaxed">{text}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       {/* Mastery coverage note */}

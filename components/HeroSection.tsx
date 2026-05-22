@@ -265,6 +265,7 @@ export default function HeroSection({ onSearch }: Props) {
 
           {/* Input frame — outer border */}
           <div
+            id="hero-search"
             className="p-[1px] transition-all duration-300"
             style={{
               background: focused
@@ -295,7 +296,7 @@ export default function HeroSection({ onSearch }: Props) {
                 }}
                 onFocus={() => { setFocused(true); if (history.length > 0) setShowHistory(true); }}
                 onBlur={() => { setFocused(false); setTimeout(() => setShowHistory(false), 150); }}
-                placeholder="Enter callsign…"
+                placeholder="닉네임을 입력하세요"
                 className="flex-1 px-4 py-4 bg-transparent font-mono text-white text-sm tracking-widest placeholder-slate-700 focus:outline-none"
               />
 

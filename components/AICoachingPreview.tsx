@@ -4,8 +4,8 @@ import { motion } from "framer-motion";
 
 const MOCK = {
   player: "Unknown_Player",
-  persona: "LEFT HAND CONFISCATED",
-  personaKr: "왼손 압수",
+  persona: "LORD OF BATTLEFIELD",
+  personaKr: "전장의 지배자",
   tier: "GOLD II",
   kd: "2.34",
   winRate: "8.2%",
@@ -173,6 +173,9 @@ export default function AICoachingPreview() {
                   background: "linear-gradient(135deg, #00f5ff, #00c4d4)",
                   boxShadow: "0 0 16px rgba(0,245,255,0.35)",
                 }}
+                onClick={() =>
+                  document.getElementById("hero-search")?.scrollIntoView({ behavior: "smooth", block: "center" })
+                }
               >
                 Analyze My Account
               </button>
