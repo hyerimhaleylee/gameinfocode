@@ -698,10 +698,30 @@ export default function ResultSection({ playerName, playerData, fetchError, seas
               <button
                 onClick={() => {
                   const url = `${window.location.origin}/?q=${encodeURIComponent(d.name)}`;
-                  navigator.clipboard.writeText(url).then(() => {
+                  const onSuccess = () => {
                     setCopied(true);
                     setTimeout(() => setCopied(false), 2000);
-                  }).catch(() => {});
+                  };
+                  const fallback = () => {
+                    try {
+                      const el = document.createElement("textarea");
+                      el.value = url;
+                      el.style.position = "fixed";
+                      el.style.opacity = "0";
+                      document.body.appendChild(el);
+                      el.select();
+                      document.execCommand("copy");
+                      document.body.removeChild(el);
+                      onSuccess();
+                    } catch {
+                      window.prompt("링크를 복사하세요", url);
+                    }
+                  };
+                  if (navigator.clipboard) {
+                    navigator.clipboard.writeText(url).then(onSuccess).catch(fallback);
+                  } else {
+                    fallback();
+                  }
                 }}
                 className="relative px-4 py-2 text-xs font-mono font-bold text-white tracking-widest uppercase rounded-sm transition-all"
                 style={{ background: "linear-gradient(135deg, #3b82f6, #8b5cf6)", boxShadow: "0 0 18px rgba(59,130,246,0.3)" }}>
