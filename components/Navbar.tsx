@@ -34,13 +34,35 @@ export default function Navbar({ onReset }: { onReset?: () => void }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" onClick={onReset} className="flex items-center gap-2 group">
-            <div className="w-7 h-7 border border-cyan-400/60 flex items-center justify-center">
-              <div className="w-3 h-3 bg-cyan-400" style={{ clipPath: "polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)" }} />
+          <Link href="/" onClick={onReset} className="flex items-center gap-2.5 group">
+            {/* Animated radar icon */}
+            <div className="relative w-8 h-8 flex-shrink-0">
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none" className="absolute inset-0">
+                <circle cx="16" cy="16" r="13.5" stroke="rgba(34,211,238,0.22)" strokeWidth="0.8" />
+                <circle cx="16" cy="16" r="8.5" stroke="rgba(34,211,238,0.14)" strokeWidth="0.6" strokeDasharray="2 3" />
+                <circle cx="16" cy="16" r="4" stroke="rgba(34,211,238,0.12)" strokeWidth="0.5" />
+                <line x1="16" y1="2.5" x2="16" y2="29.5" stroke="rgba(34,211,238,0.07)" strokeWidth="0.6" />
+                <line x1="2.5" y1="16" x2="29.5" y2="16" stroke="rgba(34,211,238,0.07)" strokeWidth="0.6" />
+                <circle cx="21.5" cy="10" r="3" fill="#22d3ee" opacity="0.12" />
+                <circle cx="21.5" cy="10" r="1.5" fill="#22d3ee" opacity="0.8" />
+              </svg>
+              <motion.div
+                className="absolute inset-0"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
+              >
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                  <line x1="16" y1="16" x2="29.5" y2="16" stroke="rgba(34,211,238,0.6)" strokeWidth="1.3" strokeLinecap="round" />
+                </svg>
+              </motion.div>
             </div>
-            <span className="text-lg font-bold tracking-[0.2em] text-white">
-              GAME<span className="text-cyan-400 neon-text-cyan">CODE</span>
-            </span>
+
+            {/* Stacked text */}
+            <div className="flex flex-col justify-center gap-[2px] leading-none">
+              <span className="text-[8px] font-mono tracking-[0.55em] text-slate-400 uppercase">GAME</span>
+              <span className="text-[13px] font-black tracking-[0.1em] text-cyan-400 uppercase"
+                style={{ textShadow: "0 0 12px rgba(34,211,238,0.6)" }}>CODE</span>
+            </div>
           </Link>
 
           {/* Desktop menu */}
