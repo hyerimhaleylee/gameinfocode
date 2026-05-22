@@ -8,6 +8,15 @@ import WeaponTab from "./WeaponTab";
 
 const AXES = ["Combat", "Teamwork", "Survival", "Management", "Aggression", "Physical"];
 
+const AXIS_META = [
+  { kr: "전투력", desc: "KD + 딜량" },
+  { kr: "팀워크", desc: "어시스트 + 부활" },
+  { kr: "생존력", desc: "승률 + 생존시간" },
+  { kr: "운영력", desc: "탑10 + 이동거리" },
+  { kr: "공격성", desc: "시간당 딜량" },
+  { kr: "피지컬", desc: "킬당 딜 효율" },
+];
+
 const FALLBACK: PlayerApiResponse = {
   name: "Unknown_Player",
   kd: "—", kda: "—", winRate: "—", avgDamage: "—", headshot: "—", assistsPerGame: "—", revivesPerGame: "—", games: "—",
@@ -27,7 +36,6 @@ const FALLBACK: PlayerApiResponse = {
 interface SeasonTab { id: string; label: string; isCurrentSeason: boolean; }
 
 function ResultRadar({ values, size = 220 }: { values: number[]; size?: number }) {
-  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const cx = size / 2, cy = size / 2, r = size * 0.36, n = AXES.length;
   const levels = [0.25, 0.5, 0.75, 1.0];
   const angle = (i: number) => (2 * Math.PI * i) / n - Math.PI / 2;
@@ -65,44 +73,42 @@ function ResultRadar({ values, size = 220 }: { values: number[]; size?: number }
         transition={{ duration: 0.8, delay: 1.8, ease: "easeOut" }}
         style={{ transformOrigin: `${cx}px ${cy}px` }} />
       {values.map((v, i) => {
-        const p = pt(angle(i), v);
         const ang = angle(i);
-        const isHovered = hoveredIdx === i;
-        const label = `${AXES[i]}: ${v}`;
-        const W = label.length * 5.4 + 10;
-        const H = 16;
-        const tx = p.x + Math.cos(ang) * 24;
-        const ty = p.y + Math.sin(ang) * 24;
+        const p = pt(ang, v);
+        const scoreOffset = 14;
+        const sx = p.x + scoreOffset * Math.cos(ang);
+        const sy = p.y + scoreOffset * Math.sin(ang);
+        const isLeft = Math.cos(ang) < -0.1;
+        const isRight = Math.cos(ang) > 0.1;
+        const anchor = isLeft ? "end" : isRight ? "start" : "middle";
         return (
           <motion.g key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2 + i * 0.07 }}>
             <circle cx={p.x} cy={p.y} r={5} fill="rgba(99,179,237,0.12)" />
             <circle cx={p.x} cy={p.y} r={2.5} fill="#63b3ed" filter="url(#rr-dot)" />
-            <circle cx={p.x} cy={p.y} r={9} fill="transparent" style={{ cursor: "crosshair" }}
-              onMouseEnter={() => setHoveredIdx(i)}
-              onMouseLeave={() => setHoveredIdx(null)} />
-            {isHovered && (
-              <g style={{ pointerEvents: "none" }}>
-                <rect x={tx - W / 2} y={ty - H / 2} width={W} height={H} rx={2}
-                  fill="rgba(8,13,26,0.94)" stroke="rgba(99,179,237,0.4)" strokeWidth="0.5" />
-                <text x={tx} y={ty} textAnchor="middle" dominantBaseline="middle"
-                  fill="#cbd5e1" fontSize="9" fontFamily="monospace" letterSpacing="0.3">
-                  {label}
-                </text>
-              </g>
-            )}
+            <text x={sx} y={sy} textAnchor={anchor} dominantBaseline="middle"
+              fill="#63b3ed" fontSize="9" fontFamily="monospace" fontWeight="bold">
+              {v}
+            </text>
           </motion.g>
         );
       })}
       {AXES.map((axis, i) => {
         const ang = angle(i);
-        const lx = cx + r * 1.3 * Math.cos(ang), ly = cy + r * 1.3 * Math.sin(ang);
+        const lx = cx + r * 1.42 * Math.cos(ang);
+        const ly = cy + r * 1.42 * Math.sin(ang);
         const anchor = Math.cos(ang) < -0.1 ? "end" : Math.cos(ang) > 0.1 ? "start" : "middle";
+        const meta = AXIS_META[i];
         return (
-          <motion.text key={axis} x={lx} y={ly} textAnchor={anchor} dominantBaseline="middle"
-            fill="rgba(148,163,184,0.8)" fontSize="10" fontFamily="monospace" letterSpacing="1"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.8 + i * 0.06 }}>
-            {axis.toUpperCase()}
-          </motion.text>
+          <motion.g key={axis} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.8 + i * 0.06 }}>
+            <text x={lx} y={ly - 7} textAnchor={anchor} dominantBaseline="middle"
+              fill="rgba(203,213,225,0.9)" fontSize="10" fontFamily="monospace" fontWeight="bold" letterSpacing="1">
+              {meta.kr}
+            </text>
+            <text x={lx} y={ly + 7} textAnchor={anchor} dominantBaseline="middle"
+              fill="rgba(100,116,139,0.7)" fontSize="8" fontFamily="monospace" letterSpacing="0.5">
+              {meta.desc}
+            </text>
+          </motion.g>
         );
       })}
     </svg>

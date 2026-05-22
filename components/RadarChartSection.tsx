@@ -5,6 +5,15 @@ import { motion } from "framer-motion";
 const AXES = ["Combat", "Teamwork", "Survival", "Management", "Aggression", "Physical"];
 const VALUES = [85, 60, 72, 55, 78, 68];
 
+const AXIS_META = [
+  { kr: "전투력", desc: "KD + 딜량" },
+  { kr: "팀워크", desc: "어시스트 + 부활" },
+  { kr: "생존력", desc: "승률 + 생존시간" },
+  { kr: "운영력", desc: "탑10 + 이동거리" },
+  { kr: "공격성", desc: "시간당 딜량" },
+  { kr: "피지컬", desc: "킬당 딜 효율" },
+];
+
 interface HexRadarProps {
   values: number[];
   size?: number;
@@ -105,19 +114,24 @@ function HexRadar({ values, size = 320 }: HexRadarProps) {
         className="radar-pulse"
       />
 
-      {/* Data dots */}
+      {/* Data dots + scores */}
       {values.map((v, i) => {
-        const p = pt(angle(i), v);
+        const ang = angle(i);
+        const p = pt(ang, v);
+        const scoreOffset = 16;
+        const sx = p.x + scoreOffset * Math.cos(ang);
+        const sy = p.y + scoreOffset * Math.sin(ang);
+        const isLeft = Math.cos(ang) < -0.1;
+        const isRight = Math.cos(ang) > 0.1;
+        const anchor = isLeft ? "end" : isRight ? "start" : "middle";
         return (
           <g key={i}>
             <circle cx={p.x} cy={p.y} r={6} fill="rgba(0,245,255,0.1)" />
-            <circle
-              cx={p.x}
-              cy={p.y}
-              r={3.5}
-              fill="#00f5ff"
-              filter="url(#dot-glow)"
-            />
+            <circle cx={p.x} cy={p.y} r={3.5} fill="#00f5ff" filter="url(#dot-glow)" />
+            <text x={sx} y={sy} textAnchor={anchor} dominantBaseline="middle"
+              fill="#00f5ff" fontSize="9" fontFamily="monospace" fontWeight="bold">
+              {v}
+            </text>
           </g>
         );
       })}
@@ -125,26 +139,24 @@ function HexRadar({ values, size = 320 }: HexRadarProps) {
       {/* Axis labels */}
       {AXES.map((axis, i) => {
         const ang = angle(i);
-        const lr = R * 1.28;
+        const lr = R * 1.38;
         const lx = CX + lr * Math.cos(ang);
         const ly = CY + lr * Math.sin(ang);
         const isLeft = Math.cos(ang) < -0.1;
         const isRight = Math.cos(ang) > 0.1;
         const anchor = isLeft ? "end" : isRight ? "start" : "middle";
+        const meta = AXIS_META[i];
         return (
-          <text
-            key={axis}
-            x={lx}
-            y={ly}
-            textAnchor={anchor}
-            dominantBaseline="middle"
-            fill="rgba(148,163,184,0.75)"
-            fontSize="11"
-            fontFamily="monospace"
-            letterSpacing="1.5"
-          >
-            {axis.toUpperCase()}
-          </text>
+          <g key={axis}>
+            <text x={lx} y={ly - 7} textAnchor={anchor} dominantBaseline="middle"
+              fill="rgba(203,213,225,0.9)" fontSize="11" fontFamily="monospace" fontWeight="bold" letterSpacing="1">
+              {meta.kr}
+            </text>
+            <text x={lx} y={ly + 7} textAnchor={anchor} dominantBaseline="middle"
+              fill="rgba(100,116,139,0.7)" fontSize="9" fontFamily="monospace" letterSpacing="0.5">
+              {meta.desc}
+            </text>
+          </g>
         );
       })}
 
