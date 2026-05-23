@@ -9,24 +9,19 @@ import type { LeaderboardEntry } from "@/lib/pubg";
 
 interface SeasonTab { id: string; label: string; isCurrentSeason: boolean; }
 
-// 36시즌부터 PUBG 랭크드 큐 통합 (FPP/TPP 동일 데이터)
+// 36시즌부터 PUBG 랭크드 큐 통합 (단일 스쿼드 큐, FPP/TPP 구분 없음)
+// 듀오/솔로 랭크드 자체가 PUBG에 존재하지 않음
 const UNIFIED_RANK_SEASON = 36;
 
-// 36시즌 이후 통합 큐: FPP/TPP 구분 없음
+// 36시즌 이후: 단일 통합 랭크드 큐만 존재
 const MODES_UNIFIED = [
-  { key: "squad-fpp", label: "스쿼드 통합" },
-  { key: "duo-fpp",   label: "듀오 통합" },
-  { key: "solo-fpp",  label: "솔로 통합" },
+  { key: "squad-fpp", label: "랭크드" },
 ];
 
-// 35시즌 이하 분리 큐: FPP/TPP 각각 존재
+// 35시즌 이하: FPP/TPP 분리 스쿼드 랭크드
 const MODES_SPLIT = [
   { key: "squad-fpp", label: "스쿼드 1인칭" },
   { key: "squad",     label: "스쿼드 3인칭" },
-  { key: "duo-fpp",   label: "듀오 1인칭" },
-  { key: "duo",       label: "듀오 3인칭" },
-  { key: "solo-fpp",  label: "솔로 1인칭" },
-  { key: "solo",      label: "솔로 3인칭" },
 ];
 
 function getSeasonNum(seasonId: string): number {
@@ -185,7 +180,7 @@ export default function LeaderboardPage() {
               style={{ background: "rgba(255,255,255,0.02)" }}>
               <span className="text-slate-500 text-[10px] font-mono">// INFO</span>
               <p className="text-slate-500 text-[10px] font-mono">
-                36시즌부터 랭크드 큐가 통합되어 1인칭/3인칭 구분이 없습니다.
+                36시즌부터 단일 랭크드 큐 운영 — 스쿼드 통합 리더보드만 제공됩니다. 듀오/솔로 랭크드는 PUBG에 없습니다.
               </p>
             </motion.div>
           )}
