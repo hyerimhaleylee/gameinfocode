@@ -69,6 +69,7 @@ export default function LeaderboardPage() {
     if (!season) return;
     setLoading(true);
     setError(null);
+    setEntries([]);
     try {
       const res = await fetch(`/api/leaderboard?season=${encodeURIComponent(season)}&mode=${encodeURIComponent(mode)}`);
       const data = await res.json();
