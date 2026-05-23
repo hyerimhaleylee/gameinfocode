@@ -164,21 +164,10 @@ export async function GET(req: NextRequest) {
           if (rows.length > 0) rankedModes = rows;
         }
       } else {
-        const [primaryData, currentSeason] = await Promise.all([
-          getLifetimeStats(accountId, shard),
-          getCurrentSeason(shard).catch(() => null),
-        ]);
-        gameModeStats = primaryData.data.attributes.gameModeStats;
-        if (totalGamesIn(gameModeStats) === 0) {
-          const otherShard = shard === "steam" ? "kakao" : "steam";
-          try {
-            const otherData = await getLifetimeStats(accountId, otherShard);
-            if (totalGamesIn(otherData.data.attributes.gameModeStats) > 0) {
-              gameModeStats = otherData.data.attributes.gameModeStats;
-              shard = otherShard;
-            }
-          } catch { /* stay with primary */ }
-        }
+        // foundSeason = null: no normal game data found in the last 15 seasons.
+        // Check current season ranked first — if ranked exists, it's more recent
+        // than any old lifetime normal data, so show ranked/current season.
+        const currentSeason = await getCurrentSeason(shard).catch(() => null);
         if (currentSeason) {
           const rankedRaw = await fetchAndStoreRanked(accountId, currentSeason.id, shard);
           rawRankedData = rankedRaw;
@@ -187,16 +176,34 @@ export async function GET(req: NextRequest) {
             const rows = getAllRankedModeRows(rankedRaw);
             if (rows.length > 0) rankedModes = rows;
           }
-          // If no normal data at all but ranked exists, label as current season (not lifetime)
           const rankedPresent = rankedRaw ? adaptRankedToNormal(rankedRaw as Record<string, unknown>) !== null : false;
-          if (totalGamesIn(gameModeStats) === 0 && rankedPresent) {
+          if (rankedPresent) {
+            // Has ranked data in current season — player plays ranked, not normal
+            // Use current season context with empty normal stats so ranked is shown
+            gameModeStats = {} as Record<string, RawModeStats>;
             seasonId = currentSeason.id;
             seasonLabel = parseSeasonLabel(currentSeason.id);
           } else {
+            // No ranked either — true lifetime fallback
+            const [primaryData] = await Promise.all([getLifetimeStats(accountId, shard)]);
+            gameModeStats = primaryData.data.attributes.gameModeStats;
+            if (totalGamesIn(gameModeStats) === 0) {
+              const otherShard = shard === "steam" ? "kakao" : "steam";
+              try {
+                const otherData = await getLifetimeStats(accountId, otherShard);
+                if (totalGamesIn(otherData.data.attributes.gameModeStats) > 0) {
+                  gameModeStats = otherData.data.attributes.gameModeStats;
+                  shard = otherShard;
+                }
+              } catch { /* stay with primary */ }
+            }
             seasonId = "lifetime";
             seasonLabel = "전체 (라이프타임)";
           }
         } else {
+          // Can't determine current season — true lifetime fallback
+          const primaryData = await getLifetimeStats(accountId, shard);
+          gameModeStats = primaryData.data.attributes.gameModeStats;
           seasonId = "lifetime";
           seasonLabel = "전체 (라이프타임)";
         }
