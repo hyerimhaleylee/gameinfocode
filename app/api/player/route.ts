@@ -136,7 +136,7 @@ export async function GET(req: NextRequest) {
 
       let foundSeason: { id: string; stats: Record<string, RawModeStats> } | null = null;
 
-      for (const s of ordered.slice(0, 8)) {
+      for (const s of ordered.slice(0, 15)) {
         let stats: Record<string, RawModeStats> | null = null;
         try {
           const data = await getSeasonStats(accountId, s.id, shard);
@@ -187,9 +187,19 @@ export async function GET(req: NextRequest) {
             const rows = getAllRankedModeRows(rankedRaw);
             if (rows.length > 0) rankedModes = rows;
           }
+          // If no normal data at all but ranked exists, label as current season (not lifetime)
+          const rankedPresent = rankedRaw ? adaptRankedToNormal(rankedRaw as Record<string, unknown>) !== null : false;
+          if (totalGamesIn(gameModeStats) === 0 && rankedPresent) {
+            seasonId = currentSeason.id;
+            seasonLabel = parseSeasonLabel(currentSeason.id);
+          } else {
+            seasonId = "lifetime";
+            seasonLabel = "전체 (라이프타임)";
+          }
+        } else {
+          seasonId = "lifetime";
+          seasonLabel = "전체 (라이프타임)";
         }
-        seasonId = "lifetime";
-        seasonLabel = "전체 (라이프타임)";
       }
     } else {
       // Explicit lifetime

@@ -379,35 +379,49 @@ export default function ResultSection({ playerName, playerData, fetchError, seas
         )}
 
         {/* ─── MODE / TEAM TABS ─── */}
-        {playerData && (playerData.availableNormalTeams.length > 0 || playerData.hasRanked) && (
+        {playerData && (
           <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.32 }}
             className="mb-4 flex flex-col gap-2">
 
-            {/* TYPE row — only show if both normal and ranked exist */}
-            {playerData.availableNormalTeams.length > 0 && playerData.hasRanked && (
+            {/* TYPE row — show whenever at least one type has data */}
+            {(playerData.availableNormalTeams.length > 0 || playerData.hasRanked) && (
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-[10px] font-mono text-slate-600 tracking-widest mr-1">TYPE</span>
-                {(["normal", "ranked"] as const).map((t) => (
-                  <button key={t}
+                {playerData.availableNormalTeams.length > 0 && (
+                  <button
                     onClick={() => {
-                      if (t === playerData.activeGameType || seasonLoading) return;
-                      if (t === "ranked") onModeChange("ranked", "squad");
-                      else onModeChange("normal", playerData.availableNormalTeams[0] ?? "squad");
+                      if (playerData.activeGameType === "normal" || seasonLoading) return;
+                      onModeChange("normal", playerData.availableNormalTeams[0] ?? "squad");
                     }}
                     disabled={seasonLoading}
                     className={`px-3 py-1 text-[10px] font-mono tracking-wider border transition-all rounded-sm ${
-                      playerData.activeGameType === t
+                      playerData.activeGameType === "normal"
                         ? "border-blue-400/60 text-blue-300 bg-blue-500/12"
                         : "border-white/10 text-slate-500 hover:border-slate-400/30 hover:text-slate-300"
                     } ${seasonLoading ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}>
-                    {t === "normal" ? "일반전" : "경쟁전"}
+                    일반전
                   </button>
-                ))}
+                )}
+                {playerData.hasRanked && (
+                  <button
+                    onClick={() => {
+                      if (playerData.activeGameType === "ranked" || seasonLoading) return;
+                      onModeChange("ranked", "squad");
+                    }}
+                    disabled={seasonLoading}
+                    className={`px-3 py-1 text-[10px] font-mono tracking-wider border transition-all rounded-sm ${
+                      playerData.activeGameType === "ranked"
+                        ? "border-amber-400/60 text-amber-300 bg-amber-500/10"
+                        : "border-white/10 text-slate-500 hover:border-slate-400/30 hover:text-slate-300"
+                    } ${seasonLoading ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}>
+                    경쟁전
+                  </button>
+                )}
               </div>
             )}
 
-            {/* TEAM row — only for normal mode with multiple teams */}
-            {playerData.activeGameType === "normal" && playerData.availableNormalTeams.length > 1 && (
+            {/* TEAM row — show for normal mode whenever teams exist (even one) */}
+            {playerData.activeGameType === "normal" && playerData.availableNormalTeams.length > 0 && (
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-[10px] font-mono text-slate-600 tracking-widest mr-1">TEAM</span>
                 {playerData.availableNormalTeams.map((team) => (
@@ -428,7 +442,7 @@ export default function ResultSection({ playerName, playerData, fetchError, seas
               </div>
             )}
 
-            {/* Ranked-only notice */}
+            {/* Ranked notice */}
             {playerData.activeGameType === "ranked" && (
               <p className="text-[10px] font-mono text-slate-600">
                 // 경쟁전 기준 — 헤드샷·어시스트·부활은 PUBG API 미제공으로 집계에서 제외됩니다.
