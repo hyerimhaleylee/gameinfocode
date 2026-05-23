@@ -76,7 +76,7 @@ function OverlayRadar({ size = 260 }: { size?: number }) {
       <motion.g
         animate={{ rotate: 360 }}
         transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-        style={{ transformOrigin: `${cx}px ${cy}px` }}
+        style={{ transformBox: "fill-box" as never, transformOrigin: "center" }}
       >
         {Array.from({ length: 18 }, (_, i) => {
           const angle = -(i + 1) * 5.5;
