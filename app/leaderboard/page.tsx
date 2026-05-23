@@ -14,6 +14,13 @@ const MODES = [
   { key: "squad",     label: "스쿼드 3인칭" },
 ];
 
+// 36시즌부터 PUBG 랭크드 큐 통합 (FPP/TPP 동일 데이터)
+const UNIFIED_RANK_SEASON = 36;
+
+function getSeasonNum(seasonId: string): number {
+  return parseInt(seasonId.match(/pc-2018-(\d+)/)?.[1] ?? "0");
+}
+
 
 const RANK_COLORS: Record<number, { text: string; glow: string }> = {
   1: { text: "#facc15", glow: "rgba(250,204,21,0.4)" },
@@ -87,13 +94,19 @@ export default function LeaderboardPage() {
     if (activeSeason) fetchLeaderboard(activeSeason, activeMode);
   }, [activeSeason, activeMode, fetchLeaderboard]);
 
+  const isUnifiedSeason = activeSeason ? getSeasonNum(activeSeason) >= UNIFIED_RANK_SEASON : false;
+
   const handleModeChange = (mode: string) => {
     if (mode === activeMode || loading) return;
+    if (mode === "squad" && isUnifiedSeason) return;
     setActiveMode(mode);
   };
 
   const handleSeasonChange = (id: string) => {
     if (id === activeSeason || loading) return;
+    if (getSeasonNum(id) >= UNIFIED_RANK_SEASON && activeMode === "squad") {
+      setActiveMode("squad-fpp");
+    }
     setActiveSeason(id);
   };
 
@@ -133,22 +146,47 @@ export default function LeaderboardPage() {
 
         {/* Mode Tabs */}
         <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-          className="mb-6 flex items-center gap-2 flex-wrap">
+          className="mb-3 flex items-center gap-2 flex-wrap">
           <span className="text-[10px] font-mono text-slate-600 tracking-widest mr-1">MODE</span>
-          {MODES.map((m) => (
-            <button key={m.key} onClick={() => handleModeChange(m.key)} disabled={loading}
-              className={`px-3 py-1 text-[10px] font-mono tracking-wider border transition-all rounded-sm ${
-                activeMode === m.key
-                  ? "border-cyan-400/60 text-cyan-300 bg-cyan-500/10"
-                  : "border-white/10 text-slate-500 hover:border-slate-400/30 hover:text-slate-300"
-              } ${loading ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}>
-              {m.label}
-            </button>
-          ))}
+          {MODES.map((m) => {
+            const isSquadDisabled = m.key === "squad" && isUnifiedSeason;
+            const isActive = activeMode === m.key;
+            return (
+              <button key={m.key}
+                onClick={() => handleModeChange(m.key)}
+                disabled={loading || isSquadDisabled}
+                title={isSquadDisabled ? "이 시즌은 1인칭/3인칭 통합 랭크입니다" : undefined}
+                className={`px-3 py-1 text-[10px] font-mono tracking-wider border transition-all rounded-sm ${
+                  isActive
+                    ? "border-cyan-400/60 text-cyan-300 bg-cyan-500/10"
+                    : isSquadDisabled
+                      ? "border-white/5 text-slate-700 opacity-40 cursor-not-allowed"
+                      : "border-white/10 text-slate-500 hover:border-slate-400/30 hover:text-slate-300 cursor-pointer"
+                } ${loading && !isSquadDisabled ? "opacity-40 cursor-not-allowed" : ""}`}>
+                {m.label}
+                {isSquadDisabled && <span className="ml-1 text-[8px] text-slate-600">통합</span>}
+              </button>
+            );
+          })}
           {loading && (
             <span className="text-[10px] font-mono text-cyan-400/60 animate-pulse ml-1">LOADING...</span>
           )}
         </motion.div>
+
+        {/* Unified rank notice */}
+        <AnimatePresence>
+          {isUnifiedSeason && (
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mb-5 px-3 py-2 border border-slate-700/40 rounded-sm flex items-center gap-2"
+              style={{ background: "rgba(255,255,255,0.02)" }}>
+              <span className="text-slate-500 text-[10px] font-mono">// INFO</span>
+              <p className="text-slate-500 text-[10px] font-mono">
+                36시즌부터 PUBG 랭크드 큐가 통합되어 1인칭/3인칭 리더보드가 동일합니다.
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Error */}
         <AnimatePresence>
