@@ -78,6 +78,8 @@ function OverlayRadar({ size = 260 }: { size?: number }) {
         transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
         style={{ transformBox: "fill-box" as never, transformOrigin: "center" }}
       >
+        {/* Invisible circle: makes fill-box symmetric around (cx,cy) so "center" = radar center */}
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="none" />
         {Array.from({ length: 18 }, (_, i) => {
           const angle = -(i + 1) * 5.5;
           const rad = (angle * Math.PI) / 180;

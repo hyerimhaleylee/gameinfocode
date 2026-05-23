@@ -41,8 +41,10 @@ function BackgroundRadar({ size = 420 }: { size?: number }) {
       <motion.g
         animate={{ rotate: 360 }}
         transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
-        style={{ transformOrigin: `${cx}px ${cy}px` }}
+        style={{ transformBox: "fill-box" as never, transformOrigin: "center" }}
       >
+        {/* Invisible circle: makes fill-box symmetric around (cx,cy) so "center" = radar center */}
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="none" />
         {Array.from({ length: 20 }, (_, i) => {
           const angle = -(i + 1) * 5;
           const rad = (angle * Math.PI) / 180;
