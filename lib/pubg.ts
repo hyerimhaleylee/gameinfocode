@@ -100,17 +100,25 @@ export async function getSeasonsList(shard = "steam") {
   if (!res.ok) throw new Error(`시즌 조회 오류 (${res.status})`);
   const json = await res.json();
   return (json.data as Array<{ id: string; attributes: { isCurrentSeason: boolean; isOffseason: boolean } }>)
-    .filter((s) => /pc-2018-\d+/.test(s.id))
+    .filter((s) => /pc-\d{4}-\d+/.test(s.id) && !s.attributes.isOffseason)
     .sort((a, b) => {
-      const na = parseInt(a.id.match(/pc-2018-(\d+)/)![1]);
-      const nb = parseInt(b.id.match(/pc-2018-(\d+)/)![1]);
+      const na = parseInt(a.id.match(/pc-\d{4}-(\d+)/)?.[1] ?? "0");
+      const nb = parseInt(b.id.match(/pc-\d{4}-(\d+)/)?.[1] ?? "0");
       return nb - na;
     });
 }
 
 export async function getCurrentSeason(shard = "steam") {
-  const seasons = await getSeasonsList(shard);
-  const current = seasons.find((s) => s.attributes.isCurrentSeason);
+  const res = await pubgFetch(`${BASE}/${shard}/seasons`, {
+    next: { revalidate: 3600 },
+  } as RequestInit);
+  if (!res.ok) throw new Error(`시즌 조회 오류 (${res.status})`);
+  const json = await res.json();
+  const all = json.data as Array<{
+    id: string;
+    attributes: { isCurrentSeason: boolean; isOffseason: boolean };
+  }>;
+  const current = all.find((s) => s.attributes.isCurrentSeason);
   if (!current) throw new Error("현재 시즌 정보를 찾을 수 없습니다.");
   return current;
 }

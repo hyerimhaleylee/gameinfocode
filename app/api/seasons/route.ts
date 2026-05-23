@@ -8,7 +8,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       seasons.slice(0, 12).map((s) => ({
         id: s.id,
-        label: `시즌 ${parseInt(s.id.match(/pc-2018-(\d+)/)![1])}`,
+        label: (() => {
+          const num = s.id.match(/pc-\d{4}-(\d+)/)?.[1];
+          return num ? `시즌 ${parseInt(num)}` : s.id;
+        })(),
         isCurrentSeason: s.attributes.isCurrentSeason,
       }))
     );

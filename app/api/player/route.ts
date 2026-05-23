@@ -52,7 +52,7 @@ function totalGamesIn(stats: Record<string, RawModeStats>) {
 }
 
 function parseSeasonLabel(seasonId: string) {
-  const num = seasonId.match(/pc-2018-(\d+)/)?.[1];
+  const num = seasonId.match(/pc-\d{4}-(\d+)/)?.[1];
   return num ? `시즌 ${parseInt(num)}` : seasonId;
 }
 
