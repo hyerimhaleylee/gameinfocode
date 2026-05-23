@@ -27,11 +27,13 @@ export default function Home() {
   const accountRef = useRef<{ accountId: string; shard: string } | null>(null);
   const fetchPromiseRef = useRef<Promise<PlayerApiResponse | null>>(Promise.resolve(null));
 
-  const buildUrl = (name: string, opts?: { season?: string; accountId?: string; shard?: string }) => {
+  const buildUrl = (name: string, opts?: { season?: string; accountId?: string; shard?: string; gameType?: string; team?: string }) => {
     const params = new URLSearchParams({ name });
     if (opts?.season) params.set("season", opts.season);
     if (opts?.accountId) params.set("accountId", opts.accountId);
     if (opts?.shard) params.set("shard", opts.shard);
+    if (opts?.gameType) params.set("gameType", opts.gameType);
+    if (opts?.team) params.set("team", opts.team);
     return `/api/player?${params}`;
   };
 
@@ -90,13 +92,13 @@ export default function Home() {
         season: seasonId,
         accountId: cached?.accountId,
         shard: cached?.shard,
+        // Let API auto-detect the best mode for the new season
       });
       const res = await fetch(url);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "분석 중 오류가 발생했습니다.");
       setPlayerData(json as PlayerApiResponse);
       accountRef.current = { accountId: json.accountId, shard: json.shard };
-      // teammates persist from previous fetch — no need to re-fetch
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "네트워크 오류가 발생했습니다.";
       setFetchError(msg);
@@ -104,6 +106,33 @@ export default function Home() {
       setSeasonLoading(false);
     }
   }, [playerName]);
+
+  const handleModeChange = useCallback(async (gameType: "normal" | "ranked", team: "squad" | "duo" | "solo") => {
+    if (!playerName) return;
+    setSeasonLoading(true);
+    setFetchError(null);
+    try {
+      const cached = accountRef.current;
+      const currentSeason = playerData?.seasonId;
+      const url = buildUrl(playerName, {
+        season: currentSeason || undefined,
+        accountId: cached?.accountId,
+        shard: cached?.shard,
+        gameType,
+        team,
+      });
+      const res = await fetch(url);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "분석 중 오류가 발생했습니다.");
+      setPlayerData(json as PlayerApiResponse);
+      accountRef.current = { accountId: json.accountId, shard: json.shard };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "네트워크 오류가 발생했습니다.";
+      setFetchError(msg);
+    } finally {
+      setSeasonLoading(false);
+    }
+  }, [playerName, playerData]);
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -155,6 +184,7 @@ export default function Home() {
             matchesLoading={matchesLoading}
             onReset={handleReset}
             onSeasonChange={handleSeasonChange}
+            onModeChange={handleModeChange}
           />
           <PersonaCards />
           <Footer onReset={handleReset} />

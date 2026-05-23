@@ -122,6 +122,10 @@ export interface PlayerApiResponse {
   allModes: ModeRow[];
   rankedModes?: RankedModeRow[];
   rankedTier?: RankedTier | null;
+  activeGameType: "normal" | "ranked";
+  activeTeam: "squad" | "duo" | "solo";
+  availableNormalTeams: Array<"squad" | "duo" | "solo">;
+  hasRanked: boolean;
 }
 
 const MODE_META: Record<string, { label: string; team: string; perspective: string }> = {
@@ -540,6 +544,61 @@ export function calculateRadarValues(s: ProcessedStats): number[] {
     (280 - s.avgDamage / Math.max(s.kd, 0.1)) / 2
   )));
   return [combat, teamwork, survival, management, aggression, physical];
+}
+
+export function getAvailableNormalTeams(
+  gameModeStats: Record<string, RawModeStats>
+): Array<"squad" | "duo" | "solo"> {
+  const g = (k: string) => gameModeStats[k]?.roundsPlayed ?? 0;
+  const result: Array<"squad" | "duo" | "solo"> = [];
+  if (g("squad-fpp") + g("squad") > 0) result.push("squad");
+  if (g("duo-fpp") + g("duo") > 0) result.push("duo");
+  if (g("solo-fpp") + g("solo") > 0) result.push("solo");
+  return result;
+}
+
+export function extractTeamStats(
+  gameModeStats: Record<string, RawModeStats>,
+  team: "squad" | "duo" | "solo"
+): { stats: RawModeStats; modeKey: string } | null {
+  const fpp = gameModeStats[`${team}-fpp`];
+  const tpp = gameModeStats[team];
+  const fppG = fpp?.roundsPlayed ?? 0;
+  const tppG = tpp?.roundsPlayed ?? 0;
+  if (fppG === 0 && tppG === 0) return null;
+  if (fppG >= tppG && fppG > 0) return { stats: fpp, modeKey: `${team}-fpp` };
+  return { stats: tpp, modeKey: team };
+}
+
+export function adaptRankedToNormal(rankedStats: Record<string, unknown>): RawModeStats | null {
+  for (const key of ["squad-fpp", "squad"]) {
+    const m = rankedStats[key] as { roundsPlayed?: number; wins?: number; kills?: number; losses?: number; damageDealt?: number } | undefined;
+    if ((m?.roundsPlayed ?? 0) > 0) {
+      return {
+        kills: m!.kills ?? 0,
+        assists: 0,
+        dBNOs: 0,
+        damageDealt: m!.damageDealt ?? 0,
+        headshotKills: 0,
+        longestTimeSurvived: 0,
+        losses: m!.losses ?? 0,
+        roundsPlayed: m!.roundsPlayed ?? 0,
+        timeSurvived: 0,
+        top10s: 0,
+        wins: m!.wins ?? 0,
+        heals: 0,
+        boosts: 0,
+        revives: 0,
+        longestKill: 0,
+        rideDistance: 0,
+        walkDistance: 0,
+        roundMostKills: 0,
+        vehicleDestroys: 0,
+        teamKills: 0,
+      };
+    }
+  }
+  return null;
 }
 
 export function getPersonaArchetypeRadar(id: string): number[] {

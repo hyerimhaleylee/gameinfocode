@@ -31,6 +31,10 @@ const FALLBACK: PlayerApiResponse = {
   accountId: "", shard: "",
   modeKey: "", modeName: "",
   allModes: [],
+  activeGameType: "normal",
+  activeTeam: "squad",
+  availableNormalTeams: [],
+  hasRanked: false,
 };
 
 interface SeasonTab { id: string; label: string; isCurrentSeason: boolean; }
@@ -284,9 +288,10 @@ interface Props {
   matchesLoading: boolean;
   onReset: () => void;
   onSeasonChange: (seasonId: string) => void;
+  onModeChange: (gameType: "normal" | "ranked", team: "squad" | "duo" | "solo") => void;
 }
 
-export default function ResultSection({ playerName, playerData, fetchError, seasonLoading, matches, matchesLoading, onReset, onSeasonChange }: Props) {
+export default function ResultSection({ playerName, playerData, fetchError, seasonLoading, matches, matchesLoading, onReset, onSeasonChange, onModeChange }: Props) {
   const [seasons, setSeasons] = useState<SeasonTab[]>([]);
   const [seasonError, setSeasonError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"stats" | "weapons">("stats");
@@ -369,6 +374,65 @@ export default function ResultSection({ playerName, playerData, fetchError, seas
             })}
             {seasonLoading && (
               <span className="text-[10px] font-mono text-blue-400/60 tracking-widest animate-pulse ml-1">LOADING...</span>
+            )}
+          </motion.div>
+        )}
+
+        {/* ─── MODE / TEAM TABS ─── */}
+        {playerData && (playerData.availableNormalTeams.length > 0 || playerData.hasRanked) && (
+          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.32 }}
+            className="mb-4 flex flex-col gap-2">
+
+            {/* TYPE row — only show if both normal and ranked exist */}
+            {playerData.availableNormalTeams.length > 0 && playerData.hasRanked && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] font-mono text-slate-600 tracking-widest mr-1">TYPE</span>
+                {(["normal", "ranked"] as const).map((t) => (
+                  <button key={t}
+                    onClick={() => {
+                      if (t === playerData.activeGameType || seasonLoading) return;
+                      if (t === "ranked") onModeChange("ranked", "squad");
+                      else onModeChange("normal", playerData.availableNormalTeams[0] ?? "squad");
+                    }}
+                    disabled={seasonLoading}
+                    className={`px-3 py-1 text-[10px] font-mono tracking-wider border transition-all rounded-sm ${
+                      playerData.activeGameType === t
+                        ? "border-blue-400/60 text-blue-300 bg-blue-500/12"
+                        : "border-white/10 text-slate-500 hover:border-slate-400/30 hover:text-slate-300"
+                    } ${seasonLoading ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}>
+                    {t === "normal" ? "일반전" : "경쟁전"}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* TEAM row — only for normal mode with multiple teams */}
+            {playerData.activeGameType === "normal" && playerData.availableNormalTeams.length > 1 && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] font-mono text-slate-600 tracking-widest mr-1">TEAM</span>
+                {playerData.availableNormalTeams.map((team) => (
+                  <button key={team}
+                    onClick={() => {
+                      if (team === playerData.activeTeam || seasonLoading) return;
+                      onModeChange("normal", team);
+                    }}
+                    disabled={seasonLoading}
+                    className={`px-3 py-1 text-[10px] font-mono tracking-wider border transition-all rounded-sm ${
+                      playerData.activeTeam === team
+                        ? "border-cyan-400/60 text-cyan-300 bg-cyan-500/10"
+                        : "border-white/10 text-slate-500 hover:border-slate-400/30 hover:text-slate-300"
+                    } ${seasonLoading ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}>
+                    {team === "squad" ? "스쿼드" : team === "duo" ? "듀오" : "솔로"}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Ranked-only notice */}
+            {playerData.activeGameType === "ranked" && (
+              <p className="text-[10px] font-mono text-slate-600">
+                // 경쟁전 기준 — 헤드샷·어시스트·부활은 PUBG API 미제공으로 집계에서 제외됩니다.
+              </p>
             )}
           </motion.div>
         )}
