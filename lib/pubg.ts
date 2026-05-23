@@ -115,10 +115,10 @@ export async function getCurrentSeason(shard = "steam") {
   return current;
 }
 
-export async function getSeasonStats(accountId: string, seasonId: string, shard = "steam") {
+export async function getSeasonStats(accountId: string, seasonId: string, shard = "steam", fetchOpts?: RequestInit) {
   const res = await pubgFetch(
     `${BASE}/${shard}/players/${accountId}/seasons/${seasonId}`,
-    { next: { revalidate: 60 } } as RequestInit
+    fetchOpts ?? ({ next: { revalidate: 60 } } as RequestInit)
   );
   if (!res.ok) throw new Error(`스탯 조회 오류 (${res.status})`);
   return await res.json();

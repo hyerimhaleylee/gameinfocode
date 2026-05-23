@@ -139,7 +139,7 @@ export async function GET(req: NextRequest) {
       for (const s of ordered.slice(0, 15)) {
         let stats: Record<string, RawModeStats> | null = null;
         try {
-          const data = await getSeasonStats(accountId, s.id, shard);
+          const data = await getSeasonStats(accountId, s.id, shard, { cache: "no-store" } as RequestInit);
           stats = data.data.attributes.gameModeStats as Record<string, RawModeStats>;
         } catch (e) {
           const msg = e instanceof Error ? e.message : "";
