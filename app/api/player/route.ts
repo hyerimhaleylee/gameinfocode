@@ -111,31 +111,33 @@ export async function GET(req: NextRequest) {
       seasonId = seasonParam;
       seasonLabel = parseSeasonLabel(seasonParam);
     } else if (!seasonParam) {
-      // Auto-detect: try most recent 3 seasons sequentially, stop at first with records
+      // Auto-detect: always start from the current season (isCurrentSeason flag),
+      // then try previous seasons in order. Never skip due to API errors.
       const seasonList = await getSeasonsList(shard);
+
+      // Put isCurrentSeason first, then the rest in descending order
+      const ordered = [
+        ...seasonList.filter(s => s.attributes.isCurrentSeason),
+        ...seasonList.filter(s => !s.attributes.isCurrentSeason),
+      ];
+
       let foundSeason: { id: string; stats: Record<string, RawModeStats> } | null = null;
 
-      for (const s of seasonList.slice(0, 3)) {
+      for (const s of ordered.slice(0, 8)) {
+        let stats: Record<string, RawModeStats> | null = null;
         try {
           const data = await getSeasonStats(accountId, s.id, shard);
-          const stats = data.data.attributes.gameModeStats as Record<string, RawModeStats>;
-          if (totalGamesIn(stats) > 0) { foundSeason = { id: s.id, stats }; break; }
-        } catch { /* try next */ }
-      }
-
-      if (!foundSeason) {
-        const results = await Promise.allSettled(
-          seasonList.slice(3, 8).map(s =>
-            getSeasonStats(accountId, s.id, shard)
-              .then(data => ({ id: s.id, stats: data.data.attributes.gameModeStats as Record<string, RawModeStats> }))
-          )
-        );
-        for (const r of results) {
-          if (r.status === "fulfilled" && totalGamesIn(r.value.stats) > 0) {
-            foundSeason = r.value;
-            break;
-          }
+          stats = data.data.attributes.gameModeStats as Record<string, RawModeStats>;
+        } catch {
+          // API error (rate limit, network): stop here rather than silently skipping
+          // — don't fall to lifetime just because of a transient error
+          break;
         }
+        if (stats && totalGamesIn(stats) > 0) {
+          foundSeason = { id: s.id, stats };
+          break;
+        }
+        // 0 games in this season — try the previous one
       }
 
       if (foundSeason) {
@@ -149,7 +151,7 @@ export async function GET(req: NextRequest) {
           if (rows.length > 0) rankedModes = rows;
         }
       } else {
-        // Fallback to lifetime
+        // Lifetime fallback — only reached when player has no data in any of the last 8 seasons
         const [primaryData, currentSeason] = await Promise.all([
           getLifetimeStats(accountId, shard),
           getCurrentSeason(shard).catch(() => null),
