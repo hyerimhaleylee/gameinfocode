@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getLeaderboard } from "@/lib/pubg";
 
-export const dynamic = "force-dynamic";
-
 const VALID_MODES = ["squad-fpp", "squad", "duo-fpp", "duo", "solo-fpp", "solo"];
 
 export async function GET(req: NextRequest) {

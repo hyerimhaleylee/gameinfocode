@@ -92,10 +92,10 @@ async function resolvePlayerCached(name: string) {
   }
 
   const { player, shard } = await resolvePlayer(name);
-  await supabase.from("player_cache").upsert(
+  supabase.from("player_cache").upsert(
     { name_lower: key, account_id: player.id, player_name: player.attributes.name, shard, cached_at: new Date().toISOString() },
     { onConflict: "name_lower" }
-  );
+  ).catch(() => {});
   return { accountId: player.id, playerName: player.attributes.name, shard };
 }
 
