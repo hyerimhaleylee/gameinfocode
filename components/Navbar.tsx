@@ -34,28 +34,45 @@ export default function Navbar({ onReset }: { onReset?: () => void }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" onClick={onReset} className="flex items-center gap-2.5 group">
-            {/* HUD bracket frame + mini radar chart */}
-            <div className="relative w-9 h-9 flex items-center justify-center">
-              <div className="absolute top-0 left-0 w-3 h-3 border-t-[1.5px] border-l-[1.5px] border-cyan-400/60 group-hover:border-cyan-400/90 transition-colors duration-300" />
-              <div className="absolute top-0 right-0 w-3 h-3 border-t-[1.5px] border-r-[1.5px] border-cyan-400/60 group-hover:border-cyan-400/90 transition-colors duration-300" />
-              <div className="absolute bottom-0 left-0 w-3 h-3 border-b-[1.5px] border-l-[1.5px] border-cyan-400/60 group-hover:border-cyan-400/90 transition-colors duration-300" />
-              <div className="absolute bottom-0 right-0 w-3 h-3 border-b-[1.5px] border-r-[1.5px] border-cyan-400/60 group-hover:border-cyan-400/90 transition-colors duration-300" />
-              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-                <polygon points="11,2.5 17.7,6.25 17.7,13.75 11,17.5 4.3,13.75 4.3,6.25"
-                  fill="none" stroke="rgba(34,211,238,0.2)" strokeWidth="0.6" />
-                <polygon points="11,5.5 14.8,7.6 14.8,12.4 11,14.5 7.2,12.4 7.2,7.6"
-                  fill="none" stroke="rgba(34,211,238,0.12)" strokeWidth="0.5" />
-                <polygon points="11,3.5 16.5,8 16,13.5 11,16.8 5.5,13 6.5,7.5"
-                  fill="rgba(34,211,238,0.14)" stroke="#22d3ee" strokeWidth="0.9" />
-                <circle cx="11" cy="11" r="1.2" fill="#22d3ee" />
+          <Link href="/" onClick={onReset} className="flex items-center gap-3 group">
+            {/* HUD bracket frame + radar icon */}
+            <div className="relative w-11 h-11 flex items-center justify-center flex-shrink-0">
+              {/* Corners — bolder */}
+              <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-cyan-400/80 group-hover:border-cyan-400 transition-colors duration-200" />
+              <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-cyan-400/80 group-hover:border-cyan-400 transition-colors duration-200" />
+              <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-cyan-400/80 group-hover:border-cyan-400 transition-colors duration-200" />
+              <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-cyan-400/80 group-hover:border-cyan-400 transition-colors duration-200" />
+              {/* Subtle inner glow on hover */}
+              <div className="absolute inset-1 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                style={{ background: "radial-gradient(ellipse at center, rgba(34,211,238,0.08) 0%, transparent 70%)" }} />
+              <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                {/* Outer ring */}
+                <polygon points="14,2.5 22.5,7 22.5,17 14,21.5 5.5,17 5.5,7"
+                  fill="none" stroke="rgba(34,211,238,0.22)" strokeWidth="0.7" />
+                {/* Mid ring */}
+                <polygon points="14,6 19.8,9.25 19.8,15.75 14,19 8.2,15.75 8.2,9.25"
+                  fill="none" stroke="rgba(34,211,238,0.13)" strokeWidth="0.5" />
+                {/* Main filled shape */}
+                <polygon points="14,4 21,9 20.5,17 14,21 7.5,16.5 8,9"
+                  fill="rgba(34,211,238,0.13)" stroke="#22d3ee" strokeWidth="1.3" />
+                {/* Center pulse rings */}
+                <circle cx="14" cy="14" r="3.5" fill="none" stroke="rgba(34,211,238,0.25)" strokeWidth="0.6" />
+                <circle cx="14" cy="14" r="1.7" fill="#22d3ee"
+                  style={{ filter: "drop-shadow(0 0 3px #22d3ee)" }} />
               </svg>
             </div>
 
-            {/* Stacked text */}
-            <div className="flex flex-col justify-center gap-[2px] leading-none">
-              <span className="text-[8px] font-mono tracking-[0.5em] text-slate-400">GAME</span>
-              <span className="text-[13px] font-black tracking-[0.08em] text-white group-hover:text-cyan-400 transition-colors duration-300">CODE</span>
+            {/* Text block */}
+            <div className="flex flex-col justify-center leading-none gap-[3px]">
+              <span className="text-[9px] font-mono tracking-[0.38em] text-cyan-400/65 group-hover:text-cyan-400/90 transition-colors duration-200 uppercase">
+                GAME·INFO
+              </span>
+              <span
+                className="text-[20px] font-black tracking-[0.04em] text-white group-hover:text-cyan-300 transition-colors duration-200"
+                style={{ textShadow: "0 0 24px rgba(34,211,238,0.18)", lineHeight: 1 }}
+              >
+                CODE
+              </span>
             </div>
           </Link>
 
