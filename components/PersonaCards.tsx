@@ -182,6 +182,9 @@ export default function PersonaCards() {
           <p className="text-slate-500 text-sm tracking-wide">
             AI가 도출한 대표 플레이어 성향 유형
           </p>
+          <p className="text-sm text-slate-500 font-mono tracking-wide mt-3">
+            다른 유형과 비교해보세요 — 총 16개의 전투 페르소나
+          </p>
         </motion.div>
 
         {/* 축 가이드 스트립 */}

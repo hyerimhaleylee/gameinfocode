@@ -372,9 +372,9 @@ export default function HeroSection({ onSearch }: Props) {
           className="flex items-center justify-center gap-10 mt-16"
         >
           {[
-            { val: "50K+", label: "Players Scanned" },
-            { val: "15", label: "Persona Types" },
-            { val: "98%", label: "Pattern Accuracy" },
+            { val: "16",   label: "Persona Types" },
+            { val: "6",    label: "Combat Axes" },
+            { val: "Free", label: "Analytics" },
           ].map((s) => (
             <div key={s.label} className="text-center">
               <p className="text-xl font-bold text-white">{s.val}</p>

@@ -25,7 +25,7 @@ const MODES_SPLIT = [
 ];
 
 function getSeasonNum(seasonId: string): number {
-  return parseInt(seasonId.match(/pc-2018-(\d+)/)?.[1] ?? "0");
+  return parseInt(seasonId.match(/pc-\d{4}-(\d+)/)?.[1] ?? "0");
 }
 
 

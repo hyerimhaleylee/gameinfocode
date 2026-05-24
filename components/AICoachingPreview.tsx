@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 
 const MOCK = {
-  player: "Unknown_Player",
+  player: "GameInfoCode_KR",
   persona: "LORD OF BATTLEFIELD",
   personaKr: "전장의 지배자",
   tier: "GOLD II",
@@ -177,7 +177,7 @@ export default function AICoachingPreview() {
                   document.getElementById("hero-search")?.scrollIntoView({ behavior: "smooth", block: "center" })
                 }
               >
-                Analyze My Account
+                내 전적 분석하기
               </button>
             </div>
           </div>
