@@ -29,16 +29,12 @@ function extractRankedTier(rankedStats: Record<string, unknown> | null): RankedT
   return null;
 }
 
-function caseVariants(name: string): string[] {
-  const title = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
-  return [...new Set([name, name.toUpperCase(), name.toLowerCase(), title])];
-}
-
 async function resolvePlayer(name: string) {
-  const variants = caseVariants(name);
+  const lower = name.trim().toLowerCase();
+  const queries = lower === name.trim() ? [lower] : [lower, name.trim()];
   for (const shard of ["steam", "kakao"] as const) {
     try {
-      const player = await findPlayerBulk(variants, shard);
+      const player = await findPlayerBulk(queries, shard);
       return { player, shard };
     } catch (e) {
       if (e instanceof Error && e.message !== "NOT_FOUND") throw e;
