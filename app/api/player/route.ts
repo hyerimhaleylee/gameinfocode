@@ -96,11 +96,6 @@ export async function GET(req: NextRequest) {
       shard = foundShard;
     }
 
-    const weaponStatsPromise = Promise.race([
-      getWeaponStats(accountId, shard).catch(() => null),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000)),
-    ]);
-
     let gameModeStats: Record<string, RawModeStats>;
     let seasonId: string;
     let seasonLabel: string;
@@ -240,6 +235,12 @@ export async function GET(req: NextRequest) {
       seasonId = "lifetime";
       seasonLabel = "전체 (라이프타임)";
     }
+
+    // Start weapon stats fetch AFTER season detection to avoid PUBG API rate-limit contention
+    const weaponStatsPromise = Promise.race([
+      getWeaponStats(accountId, shard).catch(() => null),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000)),
+    ]);
 
     // ── Mode / team selection ──────────────────────────────────────────────
     const availableNormalTeams = getAvailableNormalTeams(gameModeStats);
