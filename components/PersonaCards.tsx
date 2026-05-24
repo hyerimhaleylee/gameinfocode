@@ -5,6 +5,25 @@ import { AnimatePresence, motion } from "framer-motion";
 import { getPersonaArchetypeRadar, getPersonaStaticInfo } from "@/lib/persona";
 import MiniRadarChart from "./MiniRadarChart";
 
+const DISTRIBUTION = [
+  { priority: 1,  name: "완성형 인간",    raw: "1.3%",   applied: "1.3%"  },
+  { priority: 2,  name: "전장의 지배자",  raw: "1.9%",   applied: "1.8%"  },
+  { priority: 3,  name: "센스쟁이",       raw: "4.5%",   applied: "2.5%"  },
+  { priority: 4,  name: "에임만 신",      raw: "4.7%",   applied: "2.7%"  },
+  { priority: 5,  name: "핫드랍 광신도",  raw: "4.4%",   applied: "2.1%"  },
+  { priority: 6,  name: "저격의 신",      raw: "7.3%",   applied: "3.9%"  },
+  { priority: 7,  name: "나만 살면 돼",   raw: "9.8%",   applied: "3.6%"  },
+  { priority: 8,  name: "돌격대장",       raw: "19.2%",  applied: "4.1%"  },
+  { priority: 9,  name: "자기장 마스터",  raw: "14.5%",  applied: "6.9%"  },
+  { priority: 10, name: "탈것 장인",      raw: "19.1%",  applied: "8.2%"  },
+  { priority: 11, name: "어쩌다 치킨",    raw: "8.3%",   applied: "6.5%"  },
+  { priority: 12, name: "팀의 구원자",    raw: "11.3%",  applied: "6.6%"  },
+  { priority: 13, name: "두 발의 용사",   raw: "14.0%",  applied: "9.4%"  },
+  { priority: 14, name: "존버황제",       raw: "30.5%",  applied: "12.3%" },
+  { priority: 15, name: "성실한 삽질러",  raw: "41.0%",  applied: "13.8%" },
+  { priority: 16, name: "4렙 가방",       raw: "100.0%", applied: "14.1%" },
+];
+
 const PERSONAS = [
   {
     id: "perfect",
@@ -201,7 +220,7 @@ export default function PersonaCards() {
         </div>
 
         {/* 카드 그리드 */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5" id="persona-grid">
           {PERSONAS.map((p, i) => (
             <motion.div
               key={p.id}
@@ -255,6 +274,52 @@ export default function PersonaCards() {
             </motion.div>
           ))}
         </div>
+
+        {/* 분포 테이블 */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="mt-16 border border-white/8"
+          style={{ background: "rgba(10,15,30,0.9)" }}
+        >
+          <div className="px-5 py-3 border-b border-white/6 flex items-center gap-3">
+            <span className="text-[10px] font-mono text-slate-500 tracking-[0.2em]">// Persona Distribution</span>
+            <span className="text-[9px] font-mono text-slate-700 ml-auto">N=10,000</span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs font-mono">
+              <thead>
+                <tr className="border-b border-white/6">
+                  <th className="py-2.5 px-4 text-left text-slate-600 tracking-wider font-normal w-10">#</th>
+                  <th className="py-2.5 px-4 text-left text-slate-600 tracking-wider font-normal">페르소나</th>
+                  <th className="py-2.5 px-4 text-right text-slate-600 tracking-wider font-normal">원시 분포</th>
+                  <th className="py-2.5 px-4 text-right text-slate-600 tracking-wider font-normal">적용 분포</th>
+                </tr>
+              </thead>
+              <tbody>
+                {DISTRIBUTION.map((row) => (
+                  <tr key={row.priority} className="border-b border-white/4 hover:bg-white/2 transition-colors">
+                    <td className="py-2 px-4 text-slate-600">{row.priority}</td>
+                    <td className="py-2 px-4 text-slate-300">{row.name}</td>
+                    <td className="py-2 px-4 text-right text-slate-500">{row.raw}</td>
+                    <td className="py-2 px-4 text-right text-cyan-400 font-semibold">{row.applied}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="px-5 py-4 border-t border-white/4">
+            <p className="text-[10px] font-mono text-slate-600 leading-relaxed">
+              본 분포는 무작위 표본 플레이어 10,000명의 전적 데이터를 기준으로 산출됩니다.<br />
+              원시 분포는 각 유형의 조건 충족 비율이며, 적용 분포는 실제 분류 결과 기준입니다.<br />
+              데이터는 주기적으로 업데이트됩니다. 마지막 업데이트: 2026-05-24
+            </p>
+          </div>
+        </motion.div>
       </div>
 
       {/* 모달 */}
