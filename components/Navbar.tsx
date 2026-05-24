@@ -7,7 +7,7 @@ import Link from "next/link";
 const NAV_LINKS = [
   { label: "Analyze", href: "/" },
   { label: "Leaderboard", href: "/leaderboard" },
-  { label: "Personas", href: "/persona" },
+  { label: "Personas", href: "/personas" },
 ];
 
 export default function Navbar({ onReset }: { onReset?: () => void }) {

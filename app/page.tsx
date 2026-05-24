@@ -3,7 +3,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
-import PersonaCards from "@/components/PersonaCards";
 import HowItWorks from "@/components/HowItWorks";
 import AICoachingPreview from "@/components/AICoachingPreview";
 import RadarChartSection from "@/components/RadarChartSection";
@@ -186,13 +185,39 @@ export default function Home() {
             onSeasonChange={handleSeasonChange}
             onModeChange={handleModeChange}
           />
-          <PersonaCards />
+          <div className="flex flex-col items-center gap-4 py-20 border-t border-white/5">
+            <p className="text-[10px] font-mono text-cyan-400/40 tracking-[0.3em] uppercase">
+              PERSONA ATLAS
+            </p>
+            <p className="text-slate-400 text-sm font-mono text-center">
+              AI가 분류한 16개의 전투 유형 — 당신은 어디에 속하나요?
+            </p>
+            <a
+              href="/personas"
+              className="mt-2 px-8 py-3 border border-cyan-500/30 text-cyan-400 font-mono text-xs tracking-[0.2em] hover:bg-cyan-500/10 transition-colors"
+            >
+              전체 페르소나 보기 →
+            </a>
+          </div>
           <Footer onReset={handleReset} />
         </>
       ) : (
         <>
           <HeroSection onSearch={handleSearch} />
-          <PersonaCards />
+          <div className="flex flex-col items-center gap-4 py-20 border-t border-white/5">
+            <p className="text-[10px] font-mono text-cyan-400/40 tracking-[0.3em] uppercase">
+              PERSONA ATLAS
+            </p>
+            <p className="text-slate-400 text-sm font-mono text-center">
+              AI가 분류한 16개의 전투 유형 — 당신은 어디에 속하나요?
+            </p>
+            <a
+              href="/personas"
+              className="mt-2 px-8 py-3 border border-cyan-500/30 text-cyan-400 font-mono text-xs tracking-[0.2em] hover:bg-cyan-500/10 transition-colors"
+            >
+              전체 페르소나 보기 →
+            </a>
+          </div>
           <HowItWorks />
           <AICoachingPreview />
           <RadarChartSection />

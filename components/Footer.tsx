@@ -52,7 +52,7 @@ export default function Footer({ onReset }: { onReset?: () => void }) {
             <div className="space-y-3">
               <Link href="/" onClick={onReset} className="block text-sm text-slate-400 hover:text-cyan-400 transition-colors duration-200">Analyze</Link>
               <Link href="/leaderboard" className="block text-sm text-slate-400 hover:text-cyan-400 transition-colors duration-200">Leaderboard</Link>
-              <Link href="/persona" className="block text-sm text-slate-400 hover:text-cyan-400 transition-colors duration-200">Personas</Link>
+              <Link href="/personas" className="block text-sm text-slate-400 hover:text-cyan-400 transition-colors duration-200">Personas</Link>
             </div>
           </div>
 
