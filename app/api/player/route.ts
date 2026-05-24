@@ -30,14 +30,20 @@ function extractRankedTier(rankedStats: Record<string, unknown> | null): RankedT
 }
 
 async function resolvePlayer(name: string) {
-  const lower = name.trim().toLowerCase();
-  const queries = lower === name.trim() ? [lower] : [lower, name.trim()];
+  const t = name.trim();
+  const lower = t.toLowerCase();
+  const title = lower.charAt(0).toUpperCase() + lower.slice(1);
+  const variants = [...new Set([t, lower, title, t.toUpperCase()])];
+
   for (const shard of ["steam", "kakao"] as const) {
-    try {
-      const player = await findPlayerBulk(queries, shard);
-      return { player, shard };
-    } catch (e) {
-      if (e instanceof Error && e.message !== "NOT_FOUND") throw e;
+    for (const variant of variants) {
+      try {
+        const player = await findPlayerBulk([variant], shard);
+        return { player, shard };
+      } catch (e) {
+        if (e instanceof Error && e.message === "NOT_FOUND") continue;
+        throw e;
+      }
     }
   }
   throw new Error("플레이어를 찾을 수 없습니다. 닉네임을 다시 확인해주세요.");
