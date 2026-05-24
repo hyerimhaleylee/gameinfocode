@@ -137,19 +137,16 @@ export async function GET(req: NextRequest) {
           const data = await getSeasonStats(accountId, s.id, shard, { cache: "no-store" } as RequestInit);
           stats = data.data.attributes.gameModeStats as Record<string, RawModeStats>;
           const t = totalGamesIn(stats);
-          console.log(`[season-loop] ${s.id} → games=${t}`);
           if (t > 0) {
             foundSeason = { id: s.id, stats };
             break;
           }
         } catch (e) {
           const msg = e instanceof Error ? e.message : "";
-          console.log(`[season-loop] ${s.id} → ERROR: ${msg}`);
           if (msg.includes("(429)")) break;
           continue;
         }
       }
-      console.log(`[season-loop] result: foundSeason=${foundSeason?.id ?? "null"}`);
 
       // If no data on the primary shard, retry on the alternate shard.
       // Some players have account entries on both steam/kakao but only play on one.
@@ -165,7 +162,6 @@ export async function GET(req: NextRequest) {
             const data = await getSeasonStats(accountId, s.id, altShard, { cache: "no-store" } as RequestInit);
             const stats = data.data.attributes.gameModeStats as Record<string, RawModeStats>;
             const t = totalGamesIn(stats);
-            console.log(`[season-loop-alt:${altShard}] ${s.id} → games=${t}`);
             if (t > 0) {
               foundSeason = { id: s.id, stats };
               shard = altShard;
@@ -173,12 +169,10 @@ export async function GET(req: NextRequest) {
             }
           } catch (e) {
             const msg = e instanceof Error ? e.message : "";
-            console.log(`[season-loop-alt:${altShard}] ${s.id} → ERROR: ${msg}`);
             if (msg.includes("(429)")) break;
             continue;
           }
         }
-        console.log(`[season-loop-alt] result: foundSeason=${foundSeason?.id ?? "null"} shard=${shard}`);
       }
 
       if (foundSeason) {
