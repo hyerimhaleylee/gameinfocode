@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export const maxDuration = 60;
+import { supabase } from "@/lib/supabase";
 import { findPlayerBulk, getSeasonStats, getSeasonsList, getLifetimeStats, getCurrentSeason, getRankedSeasonStats, getWeaponStats } from "@/lib/pubg";
 import {
   extractBestModeStats,
@@ -97,6 +98,8 @@ export async function GET(req: NextRequest) {
       playerName = player.attributes.name;
       shard = foundShard;
     }
+
+    supabase.from("searches").insert({ query: playerName }).then(() => {});
 
     let gameModeStats: Record<string, RawModeStats>;
     let seasonId: string;
