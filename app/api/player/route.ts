@@ -136,16 +136,20 @@ export async function GET(req: NextRequest) {
         try {
           const data = await getSeasonStats(accountId, s.id, shard, { cache: "no-store" } as RequestInit);
           stats = data.data.attributes.gameModeStats as Record<string, RawModeStats>;
+          const t = totalGamesIn(stats);
+          console.log(`[season-loop] ${s.id} → games=${t}`);
+          if (t > 0) {
+            foundSeason = { id: s.id, stats };
+            break;
+          }
         } catch (e) {
           const msg = e instanceof Error ? e.message : "";
-          if (msg.includes("(429)")) break; // rate limit — stop all attempts
-          continue; // 404 (no data this season) — try next season
-        }
-        if (stats && totalGamesIn(stats) > 0) {
-          foundSeason = { id: s.id, stats };
-          break;
+          console.log(`[season-loop] ${s.id} → ERROR: ${msg}`);
+          if (msg.includes("(429)")) break;
+          continue;
         }
       }
+      console.log(`[season-loop] result: foundSeason=${foundSeason?.id ?? "null"}`);
 
       if (foundSeason) {
         gameModeStats = foundSeason.stats;
