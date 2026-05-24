@@ -19,6 +19,11 @@ import {
 } from "@/lib/persona";
 import type { RawModeStats, RankedModeRow, RankedTier, WeaponRatio } from "@/lib/persona";
 
+const PLAYER_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const SEASON_CACHE_TTL_MS = 60 * 60 * 1000;
+const currentSeasonMemCache: Record<string, { id: string; ts: number }> = {};
+const CURRENT_SEASON_MEM_TTL_MS = 6 * 60 * 60 * 1000;
+
 function extractRankedTier(rankedStats: Record<string, unknown> | null): RankedTier | null {
   if (!rankedStats) return null;
   for (const mode of ["squad-fpp", "squad", "duo-fpp", "duo"]) {
@@ -71,13 +76,77 @@ async function fetchAndStoreRanked(
   }
 }
 
+async function resolvePlayerCached(name: string) {
+  const key = name.trim().toLowerCase();
+  const since = new Date(Date.now() - PLAYER_CACHE_TTL_MS).toISOString();
+
+  const { data: cached } = await supabase
+    .from("player_cache")
+    .select("account_id, player_name, shard")
+    .eq("name_lower", key)
+    .gte("cached_at", since)
+    .maybeSingle();
+
+  if (cached) {
+    return { accountId: cached.account_id as string, playerName: cached.player_name as string, shard: cached.shard as string };
+  }
+
+  const { player, shard } = await resolvePlayer(name);
+  await supabase.from("player_cache").upsert(
+    { name_lower: key, account_id: player.id, player_name: player.attributes.name, shard, cached_at: new Date().toISOString() },
+    { onConflict: "name_lower" }
+  );
+  return { accountId: player.id, playerName: player.attributes.name, shard };
+}
+
+async function getCurrentSeasonCached(shard: string) {
+  const entry = currentSeasonMemCache[shard];
+  if (entry && Date.now() - entry.ts < CURRENT_SEASON_MEM_TTL_MS) {
+    return { id: entry.id };
+  }
+  const season = await getCurrentSeason(shard);
+  if (season) currentSeasonMemCache[shard] = { id: season.id, ts: Date.now() };
+  return season;
+}
+
+async function getSeasonCached(accountId: string, seasonId: string, shard: string) {
+  const since = new Date(Date.now() - SEASON_CACHE_TTL_MS).toISOString();
+  const { data } = await supabase
+    .from("season_cache")
+    .select("game_mode_stats, ranked_data, weapon_ratio")
+    .eq("account_id", accountId)
+    .eq("season_id", seasonId)
+    .eq("shard", shard)
+    .gte("cached_at", since)
+    .maybeSingle();
+  return data ?? null;
+}
+
+async function storeSeasonCache(
+  accountId: string, seasonId: string, shard: string,
+  gameModeStats: Record<string, RawModeStats>,
+  rankedData: Record<string, unknown> | null,
+  weaponRatio: WeaponRatio | null
+) {
+  await supabase.from("season_cache").upsert(
+    {
+      account_id: accountId, season_id: seasonId, shard,
+      game_mode_stats: gameModeStats,
+      ranked_data: rankedData,
+      weapon_ratio: weaponRatio,
+      cached_at: new Date().toISOString(),
+    },
+    { onConflict: "account_id,season_id,shard" }
+  );
+}
+
 export async function GET(req: NextRequest) {
   const name = req.nextUrl.searchParams.get("name");
   const seasonParam = req.nextUrl.searchParams.get("season");
   const cachedAccountId = req.nextUrl.searchParams.get("accountId");
   const cachedShard = req.nextUrl.searchParams.get("shard");
   const teamParam = (req.nextUrl.searchParams.get("team") ?? "squad") as "squad" | "duo" | "solo";
-  const gameTypeParam = req.nextUrl.searchParams.get("gameType") ?? ""; // "normal" | "ranked" | ""
+  const gameTypeParam = req.nextUrl.searchParams.get("gameType") ?? "";
 
   if (!name) {
     return NextResponse.json({ error: "닉네임을 입력해주세요." }, { status: 400 });
@@ -93,10 +162,10 @@ export async function GET(req: NextRequest) {
       shard = cachedShard;
       playerName = name;
     } else {
-      const { player, shard: foundShard } = await resolvePlayer(name);
-      accountId = player.id;
-      playerName = player.attributes.name;
-      shard = foundShard;
+      const resolved = await resolvePlayerCached(name);
+      accountId = resolved.accountId;
+      playerName = resolved.playerName;
+      shard = resolved.shard;
     }
 
     supabase.from("searches").insert({ query: playerName }).then(() => {});
@@ -106,48 +175,68 @@ export async function GET(req: NextRequest) {
     let seasonLabel: string;
     let rankedModes: RankedModeRow[] | undefined;
     let rankedTier: RankedTier | null = null;
-    // Keep raw ranked data so we can adapt it for processStats
     let rawRankedData: Record<string, unknown> | null = null;
+    let weaponRatioFromCache: WeaponRatio | null = null;
+    let seasonDataFromCache = false;
 
     if (seasonParam && seasonParam !== "lifetime") {
-      const [data, rankedRaw] = await Promise.all([
-        getSeasonStats(accountId, seasonParam, shard),
-        fetchAndStoreRanked(accountId, seasonParam, shard),
-      ]);
-      gameModeStats = data.data.attributes.gameModeStats;
-
-      if (totalGamesIn(gameModeStats) === 0) {
-        return NextResponse.json({ error: "해당 시즌에 플레이 기록이 없습니다." }, { status: 404 });
+      const cached = await getSeasonCached(accountId, seasonParam, shard);
+      if (cached) {
+        gameModeStats = cached.game_mode_stats as Record<string, RawModeStats>;
+        rawRankedData = cached.ranked_data as Record<string, unknown> | null;
+        const cachedWeapon = cached.weapon_ratio as WeaponRatio | null;
+        if (cachedWeapon) weaponRatioFromCache = cachedWeapon;
+      } else {
+        const [data, rankedRaw] = await Promise.all([
+          getSeasonStats(accountId, seasonParam, shard),
+          fetchAndStoreRanked(accountId, seasonParam, shard),
+        ]);
+        gameModeStats = data.data.attributes.gameModeStats;
+        if (totalGamesIn(gameModeStats) === 0) {
+          return NextResponse.json({ error: "해당 시즌에 플레이 기록이 없습니다." }, { status: 404 });
+        }
+        rawRankedData = rankedRaw;
+        await storeSeasonCache(accountId, seasonParam, shard, gameModeStats, rankedRaw, null);
       }
-      rawRankedData = rankedRaw;
-      rankedTier = extractRankedTier(rankedRaw);
-      if (rankedRaw) {
-        const rows = getAllRankedModeRows(rankedRaw);
+      rankedTier = extractRankedTier(rawRankedData);
+      if (rawRankedData) {
+        const rows = getAllRankedModeRows(rawRankedData);
         if (rows.length > 0) rankedModes = rows;
       }
       seasonId = seasonParam;
       seasonLabel = parseSeasonLabel(seasonParam);
     } else if (!seasonParam) {
       let foundSeason: { id: string; stats: Record<string, RawModeStats> } | null = null;
+      // undefined = not yet checked from cache; null/value = retrieved from cache
+      let foundSeasonRanked: Record<string, unknown> | null | undefined = undefined;
 
-      // Fast path: try current season first (1 API call)
-      const currentSeason = await getCurrentSeason(shard).catch(() => null);
+      const currentSeason = await getCurrentSeasonCached(shard).catch(() => null);
       const skipId = currentSeason?.id;
 
       if (currentSeason) {
-        try {
-          const data = await getSeasonStats(accountId, currentSeason.id, shard, { cache: "no-store" } as RequestInit);
-          const stats = data.data.attributes.gameModeStats as Record<string, RawModeStats>;
-          if (totalGamesIn(stats) > 0) {
-            foundSeason = { id: currentSeason.id, stats };
+        let seasonCached = null;
+        try { seasonCached = await getSeasonCached(accountId, currentSeason.id, shard); } catch { /* fall through to API */ }
+
+        if (seasonCached && totalGamesIn(seasonCached.game_mode_stats as Record<string, RawModeStats>) > 0) {
+          foundSeason = { id: currentSeason.id, stats: seasonCached.game_mode_stats as Record<string, RawModeStats> };
+          foundSeasonRanked = seasonCached.ranked_data as Record<string, unknown> | null;
+          const cachedWeapon = seasonCached.weapon_ratio as WeaponRatio | null;
+          if (cachedWeapon) weaponRatioFromCache = cachedWeapon;
+          seasonDataFromCache = true;
+        } else {
+          try {
+            const data = await getSeasonStats(accountId, currentSeason.id, shard, { cache: "no-store" } as RequestInit);
+            const stats = data.data.attributes.gameModeStats as Record<string, RawModeStats>;
+            if (totalGamesIn(stats) > 0) {
+              foundSeason = { id: currentSeason.id, stats };
+            }
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : "";
+            if (msg.includes("(429)")) { /* rate limited — skip to fallback loop */ }
           }
-        } catch (e) {
-          const msg = e instanceof Error ? e.message : "";
-          if (msg.includes("(429)")) { /* rate limited — skip to fallback loop */ }
         }
       }
 
-      // Fallback loop: scan recent seasons (skip current season already checked)
       if (!foundSeason) {
         const seasonList = await getSeasonsList(shard);
         const ordered = [
@@ -156,6 +245,18 @@ export async function GET(req: NextRequest) {
         ].filter(s => s.id !== skipId);
 
         for (const s of ordered.slice(0, 14)) {
+          let seasonCached = null;
+          try { seasonCached = await getSeasonCached(accountId, s.id, shard); } catch { /* fall through to API */ }
+
+          if (seasonCached && totalGamesIn(seasonCached.game_mode_stats as Record<string, RawModeStats>) > 0) {
+            foundSeason = { id: s.id, stats: seasonCached.game_mode_stats as Record<string, RawModeStats> };
+            foundSeasonRanked = seasonCached.ranked_data as Record<string, unknown> | null;
+            const cachedWeapon = seasonCached.weapon_ratio as WeaponRatio | null;
+            if (cachedWeapon) weaponRatioFromCache = cachedWeapon;
+            seasonDataFromCache = true;
+            break;
+          }
+
           try {
             const data = await getSeasonStats(accountId, s.id, shard, { cache: "no-store" } as RequestInit);
             const stats = data.data.attributes.gameModeStats as Record<string, RawModeStats>;
@@ -171,8 +272,6 @@ export async function GET(req: NextRequest) {
         }
       }
 
-      // If no data on the primary shard, retry on the alternate shard.
-      // Some players have account entries on both steam/kakao but only play on one.
       if (!foundSeason) {
         const altShard = shard === "steam" ? "kakao" : "steam";
         const altCurrentSeason = await getCurrentSeason(altShard).catch(() => null);
@@ -217,18 +316,19 @@ export async function GET(req: NextRequest) {
         gameModeStats = foundSeason.stats;
         seasonId = foundSeason.id;
         seasonLabel = parseSeasonLabel(foundSeason.id);
-        const rankedRaw = await fetchAndStoreRanked(accountId, foundSeason.id, shard);
-        rawRankedData = rankedRaw;
-        rankedTier = extractRankedTier(rankedRaw);
-        if (rankedRaw) {
-          const rows = getAllRankedModeRows(rankedRaw);
+
+        if (foundSeasonRanked !== undefined) {
+          rawRankedData = foundSeasonRanked;
+        } else {
+          const rankedRaw = await fetchAndStoreRanked(accountId, foundSeason.id, shard);
+          rawRankedData = rankedRaw;
+        }
+        rankedTier = extractRankedTier(rawRankedData);
+        if (rawRankedData) {
+          const rows = getAllRankedModeRows(rawRankedData);
           if (rows.length > 0) rankedModes = rows;
         }
       } else {
-        // foundSeason = null: no normal game data found in the last 15 seasons.
-        // Check current season ranked first — if ranked exists, it's more recent
-        // than any old lifetime normal data, so show ranked/current season.
-        // Reuse currentSeason from fast-path; fall back to a fresh call if it was null.
         const noDataCurrentSeason = currentSeason ?? await getCurrentSeason(shard).catch(() => null);
         if (noDataCurrentSeason) {
           const rankedRaw = await fetchAndStoreRanked(accountId, noDataCurrentSeason.id, shard);
@@ -244,7 +344,6 @@ export async function GET(req: NextRequest) {
             seasonId = noDataCurrentSeason.id;
             seasonLabel = parseSeasonLabel(noDataCurrentSeason.id);
           } else {
-            // No ranked either — true lifetime fallback
             const primaryData = await getLifetimeStats(accountId, shard);
             gameModeStats = primaryData.data.attributes.gameModeStats;
             if (totalGamesIn(gameModeStats) === 0) {
@@ -261,7 +360,6 @@ export async function GET(req: NextRequest) {
             seasonLabel = "전체 (라이프타임)";
           }
         } else {
-          // Can't determine current season — true lifetime fallback
           const primaryData = await getLifetimeStats(accountId, shard);
           gameModeStats = primaryData.data.attributes.gameModeStats;
           seasonId = "lifetime";
@@ -301,11 +399,13 @@ export async function GET(req: NextRequest) {
       seasonLabel = "전체 (라이프타임)";
     }
 
-    // Start weapon stats fetch AFTER season detection to avoid PUBG API rate-limit contention
-    const weaponStatsPromise = Promise.race([
-      getWeaponStats(accountId, shard).catch(() => null),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000)),
-    ]);
+    // Weapon stats: only on initial search (no seasonParam) and only on cache miss
+    const weaponStatsPromise = (!seasonParam && !weaponRatioFromCache)
+      ? Promise.race([
+          getWeaponStats(accountId, shard).catch(() => null),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000)),
+        ])
+      : Promise.resolve(null);
 
     // ── Mode / team selection ──────────────────────────────────────────────
     const availableNormalTeams = getAvailableNormalTeams(gameModeStats);
@@ -336,7 +436,6 @@ export async function GET(req: NextRequest) {
       activeGameType = "normal";
       activeTeam = teamParam;
     } else {
-      // Auto-detect: normal squad → ranked → best other normal
       const squadExtracted = extractTeamStats(gameModeStats, "squad");
       if (squadExtracted) {
         finalRawStats = squadExtracted.stats;
@@ -362,9 +461,14 @@ export async function GET(req: NextRequest) {
     const allModes = getAllModeRows(gameModeStats, playerName);
 
     const weaponStats = await weaponStatsPromise;
-    let weaponRatio: WeaponRatio | null = null;
+    let weaponRatio: WeaponRatio | null = weaponRatioFromCache;
     if (weaponStats && weaponStats.totalTracked >= 10) {
       weaponRatio = { nearPct: weaponStats.nearPct, farPct: weaponStats.farPct, totalTracked: weaponStats.totalTracked };
+    }
+
+    // Store season cache on fresh API fetch (fire-and-forget)
+    if (!seasonParam && !seasonDataFromCache && seasonId !== "lifetime") {
+      storeSeasonCache(accountId, seasonId, shard, gameModeStats, rawRankedData, weaponRatio).catch(() => {});
     }
 
     const persona = determinePersona(stats);
