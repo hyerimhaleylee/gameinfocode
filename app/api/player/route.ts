@@ -125,28 +125,46 @@ export async function GET(req: NextRequest) {
       seasonId = seasonParam;
       seasonLabel = parseSeasonLabel(seasonParam);
     } else if (!seasonParam) {
-      const seasonList = await getSeasonsList(shard);
-      const ordered = [
-        ...seasonList.filter(s => s.attributes.isCurrentSeason),
-        ...seasonList.filter(s => !s.attributes.isCurrentSeason),
-      ];
-
       let foundSeason: { id: string; stats: Record<string, RawModeStats> } | null = null;
 
-      for (const s of ordered.slice(0, 15)) {
-        let stats: Record<string, RawModeStats> | null = null;
+      // Fast path: try current season first (1 API call)
+      const currentSeason = await getCurrentSeason(shard).catch(() => null);
+      const skipId = currentSeason?.id;
+
+      if (currentSeason) {
         try {
-          const data = await getSeasonStats(accountId, s.id, shard, { cache: "no-store" } as RequestInit);
-          stats = data.data.attributes.gameModeStats as Record<string, RawModeStats>;
-          const t = totalGamesIn(stats);
-          if (t > 0) {
-            foundSeason = { id: s.id, stats };
-            break;
+          const data = await getSeasonStats(accountId, currentSeason.id, shard, { cache: "no-store" } as RequestInit);
+          const stats = data.data.attributes.gameModeStats as Record<string, RawModeStats>;
+          if (totalGamesIn(stats) > 0) {
+            foundSeason = { id: currentSeason.id, stats };
           }
         } catch (e) {
           const msg = e instanceof Error ? e.message : "";
-          if (msg.includes("(429)")) break;
-          continue;
+          if (msg.includes("(429)")) { /* rate limited — skip to fallback loop */ }
+        }
+      }
+
+      // Fallback loop: scan recent seasons (skip current season already checked)
+      if (!foundSeason) {
+        const seasonList = await getSeasonsList(shard);
+        const ordered = [
+          ...seasonList.filter(s => s.attributes.isCurrentSeason),
+          ...seasonList.filter(s => !s.attributes.isCurrentSeason),
+        ].filter(s => s.id !== skipId);
+
+        for (const s of ordered.slice(0, 14)) {
+          try {
+            const data = await getSeasonStats(accountId, s.id, shard, { cache: "no-store" } as RequestInit);
+            const stats = data.data.attributes.gameModeStats as Record<string, RawModeStats>;
+            if (totalGamesIn(stats) > 0) {
+              foundSeason = { id: s.id, stats };
+              break;
+            }
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : "";
+            if (msg.includes("(429)")) break;
+            continue;
+          }
         }
       }
 
@@ -154,25 +172,40 @@ export async function GET(req: NextRequest) {
       // Some players have account entries on both steam/kakao but only play on one.
       if (!foundSeason) {
         const altShard = shard === "steam" ? "kakao" : "steam";
-        const altSeasonList = await getSeasonsList(altShard).catch(() => [] as typeof seasonList);
-        const altOrdered = [
-          ...altSeasonList.filter(s => s.attributes.isCurrentSeason),
-          ...altSeasonList.filter(s => !s.attributes.isCurrentSeason),
-        ];
-        for (const s of altOrdered.slice(0, 10)) {
+        const altCurrentSeason = await getCurrentSeason(altShard).catch(() => null);
+        const altSkipId = altCurrentSeason?.id;
+
+        if (altCurrentSeason) {
           try {
-            const data = await getSeasonStats(accountId, s.id, altShard, { cache: "no-store" } as RequestInit);
+            const data = await getSeasonStats(accountId, altCurrentSeason.id, altShard, { cache: "no-store" } as RequestInit);
             const stats = data.data.attributes.gameModeStats as Record<string, RawModeStats>;
-            const t = totalGamesIn(stats);
-            if (t > 0) {
-              foundSeason = { id: s.id, stats };
+            if (totalGamesIn(stats) > 0) {
+              foundSeason = { id: altCurrentSeason.id, stats };
               shard = altShard;
-              break;
             }
-          } catch (e) {
-            const msg = e instanceof Error ? e.message : "";
-            if (msg.includes("(429)")) break;
-            continue;
+          } catch { /* continue to alt loop */ }
+        }
+
+        if (!foundSeason) {
+          const altSeasonList = await getSeasonsList(altShard).catch(() => [] as Awaited<ReturnType<typeof getSeasonsList>>);
+          const altOrdered = [
+            ...altSeasonList.filter(s => s.attributes.isCurrentSeason),
+            ...altSeasonList.filter(s => !s.attributes.isCurrentSeason),
+          ].filter(s => s.id !== altSkipId);
+          for (const s of altOrdered.slice(0, 9)) {
+            try {
+              const data = await getSeasonStats(accountId, s.id, altShard, { cache: "no-store" } as RequestInit);
+              const stats = data.data.attributes.gameModeStats as Record<string, RawModeStats>;
+              if (totalGamesIn(stats) > 0) {
+                foundSeason = { id: s.id, stats };
+                shard = altShard;
+                break;
+              }
+            } catch (e) {
+              const msg = e instanceof Error ? e.message : "";
+              if (msg.includes("(429)")) break;
+              continue;
+            }
           }
         }
       }
@@ -192,9 +225,10 @@ export async function GET(req: NextRequest) {
         // foundSeason = null: no normal game data found in the last 15 seasons.
         // Check current season ranked first — if ranked exists, it's more recent
         // than any old lifetime normal data, so show ranked/current season.
-        const currentSeason = await getCurrentSeason(shard).catch(() => null);
-        if (currentSeason) {
-          const rankedRaw = await fetchAndStoreRanked(accountId, currentSeason.id, shard);
+        // Reuse currentSeason from fast-path; fall back to a fresh call if it was null.
+        const noDataCurrentSeason = currentSeason ?? await getCurrentSeason(shard).catch(() => null);
+        if (noDataCurrentSeason) {
+          const rankedRaw = await fetchAndStoreRanked(accountId, noDataCurrentSeason.id, shard);
           rawRankedData = rankedRaw;
           rankedTier = extractRankedTier(rankedRaw);
           if (rankedRaw) {
@@ -203,14 +237,12 @@ export async function GET(req: NextRequest) {
           }
           const rankedPresent = rankedRaw ? adaptRankedToNormal(rankedRaw as Record<string, unknown>) !== null : false;
           if (rankedPresent) {
-            // Has ranked data in current season — player plays ranked, not normal
-            // Use current season context with empty normal stats so ranked is shown
             gameModeStats = {} as Record<string, RawModeStats>;
-            seasonId = currentSeason.id;
-            seasonLabel = parseSeasonLabel(currentSeason.id);
+            seasonId = noDataCurrentSeason.id;
+            seasonLabel = parseSeasonLabel(noDataCurrentSeason.id);
           } else {
             // No ranked either — true lifetime fallback
-            const [primaryData] = await Promise.all([getLifetimeStats(accountId, shard)]);
+            const primaryData = await getLifetimeStats(accountId, shard);
             gameModeStats = primaryData.data.attributes.gameModeStats;
             if (totalGamesIn(gameModeStats) === 0) {
               const otherShard = shard === "steam" ? "kakao" : "steam";
