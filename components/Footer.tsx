@@ -66,7 +66,7 @@ export default function Footer({ onReset }: { onReset?: () => void }) {
             © 2026 GAMECODE. All rights reserved.
           </p>
           <p className="text-slate-500 text-xs font-mono tracking-widest">
-            Made by <span className="text-cyan-400">OTTANK</span>
+            Made by <Link href="/admin" className="text-cyan-400">OTTANK</Link>
           </p>
         </div>
       </div>
