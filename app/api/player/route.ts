@@ -200,21 +200,19 @@ export async function GET(req: NextRequest) {
       const cached = await getSeasonCached(accountId, seasonParam, shard);
       if (cached) {
         gameModeStats = cached.game_mode_stats as Record<string, RawModeStats>;
-        rawRankedData = cached.ranked_data as Record<string, unknown> | null;
+        // ranked_data는 캐시 사용 안 함 — JSON 직렬화 시 필드 소실 문제로 항상 fresh fetch
         const cachedWeapon = cached.weapon_ratio as WeaponRatio | null;
         if (cachedWeapon) weaponRatioFromCache = cachedWeapon;
       } else {
-        const [data, rankedRaw] = await Promise.all([
-          getSeasonStats(accountId, seasonParam, shard),
-          fetchAndStoreRanked(accountId, seasonParam, shard),
-        ]);
+        const data = await getSeasonStats(accountId, seasonParam, shard);
         gameModeStats = data.data.attributes.gameModeStats;
         if (totalGamesIn(gameModeStats) === 0) {
           return NextResponse.json({ error: "해당 시즌에 플레이 기록이 없습니다." }, { status: 404 });
         }
-        rawRankedData = rankedRaw;
-        await storeSeasonCache(accountId, seasonParam, shard, gameModeStats, rankedRaw, null);
+        await storeSeasonCache(accountId, seasonParam, shard, gameModeStats, null, null);
       }
+      const [rankedRaw] = await Promise.all([fetchAndStoreRanked(accountId, seasonParam, shard)]);
+      rawRankedData = rankedRaw;
       rankedTier = extractRankedTier(rawRankedData);
       if (rawRankedData) {
         const rows = getAllRankedModeRows(rawRankedData);

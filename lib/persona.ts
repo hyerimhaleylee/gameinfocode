@@ -505,14 +505,16 @@ export function getAllRankedModeRows(
     .map((key) => {
       const m = rankedStats[key] as RawRankedMode;
       const meta = MODE_META[key] ?? { team: key, perspective: "-" };
-      const deaths = Math.max(m.deaths || m.losses || (m.roundsPlayed - m.wins), 1);
+      const rawDeaths = m.deaths ?? m.losses ?? (m.roundsPlayed - m.wins);
+      const deaths = Math.max(isNaN(rawDeaths) ? m.roundsPlayed - m.wins : rawDeaths, 1);
       const games = Math.max(m.roundsPlayed, 1);
+      const kills = m.kills ?? 0;
       return {
         key,
         team: meta.team,
         perspective: meta.perspective,
         gamesStr: m.roundsPlayed.toLocaleString(),
-        kdStr: (m.kills / deaths).toFixed(2),
+        kdStr: kills > 0 && deaths > 0 ? (kills / deaths).toFixed(2) : "—",
         winRateStr: ((m.wins / games) * 100).toFixed(1) + "%",
         avgDamageStr: Math.round(m.damageDealt / games).toString(),
         currentTier: tierStr(m.currentTier),
