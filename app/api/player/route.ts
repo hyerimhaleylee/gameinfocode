@@ -21,8 +21,7 @@ import type { RawModeStats, RankedModeRow, RankedTier, WeaponRatio } from "@/lib
 
 const PLAYER_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const SEASON_CACHE_TTL_MS = 60 * 60 * 1000;
-const currentSeasonMemCache: Record<string, { id: string; ts: number }> = {};
-const CURRENT_SEASON_MEM_TTL_MS = 6 * 60 * 60 * 1000;
+const CURRENT_SEASON_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 function extractRankedTier(rankedStats: Record<string, unknown> | null): RankedTier | null {
   if (!rankedStats) return null;
@@ -100,12 +99,23 @@ async function resolvePlayerCached(name: string) {
 }
 
 async function getCurrentSeasonCached(shard: string) {
-  const entry = currentSeasonMemCache[shard];
-  if (entry && Date.now() - entry.ts < CURRENT_SEASON_MEM_TTL_MS) {
-    return { id: entry.id };
-  }
+  const since = new Date(Date.now() - CURRENT_SEASON_TTL_MS).toISOString();
+  const { data: cached } = await supabase
+    .from("current_season_cache")
+    .select("season_id")
+    .eq("shard", shard)
+    .gte("cached_at", since)
+    .maybeSingle();
+
+  if (cached) return { id: cached.season_id as string };
+
   const season = await getCurrentSeason(shard);
-  if (season) currentSeasonMemCache[shard] = { id: season.id, ts: Date.now() };
+  if (season) {
+    supabase.from("current_season_cache").upsert(
+      { shard, season_id: season.id, cached_at: new Date().toISOString() },
+      { onConflict: "shard" }
+    ).catch(() => {});
+  }
   return season;
 }
 
