@@ -129,10 +129,11 @@ function OverlayRadar({ size = 260 }: { size?: number }) {
 
 interface Props {
   playerName: string;
+  ready: boolean;
   onComplete: () => void;
 }
 
-export default function AnalysisOverlay({ playerName, onComplete }: Props) {
+export default function AnalysisOverlay({ playerName, ready, onComplete }: Props) {
   const [visibleSteps, setVisibleSteps] = useState(0);
   const [complete, setComplete] = useState(false);
   const [exiting, setExiting] = useState(false);
@@ -148,11 +149,16 @@ export default function AnalysisOverlay({ playerName, onComplete }: Props) {
     });
 
     timers.push(setTimeout(() => setComplete(true), (STEPS.length + 1) * interval));
-    timers.push(setTimeout(() => setExiting(true), (STEPS.length + 1.8) * interval));
-    timers.push(setTimeout(() => done(), (STEPS.length + 1.8) * interval + 700));
 
     return () => timers.forEach(clearTimeout);
-  }, [done]);
+  }, []);
+
+  useEffect(() => {
+    if (!complete || !ready) return;
+    const t1 = setTimeout(() => setExiting(true), 800);
+    const t2 = setTimeout(() => done(), 1500);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [complete, ready, done]);
 
   return (
     <AnimatePresence>

@@ -19,6 +19,7 @@ export default function Home() {
   const [playerName, setPlayerName] = useState("");
   const [playerData, setPlayerData] = useState<PlayerApiResponse | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [playerDataReady, setPlayerDataReady] = useState(false);
   const [seasonLoading, setSeasonLoading] = useState(false);
   const [matches, setMatches] = useState<MatchEntry[]>([]);
   const [matchesLoading, setMatchesLoading] = useState(false);
@@ -54,6 +55,7 @@ export default function Home() {
     setPhase("scanning");
     setPlayerData(null);
     setFetchError(null);
+    setPlayerDataReady(false);
     setMatches([]);
     accountRef.current = null;
 
@@ -68,6 +70,8 @@ export default function Home() {
         setFetchError(msg);
         return null;
       });
+
+    fetchPromiseRef.current.then(() => setPlayerDataReady(true));
   }, []);
 
   const handleAnalysisComplete = useCallback(async () => {
@@ -156,6 +160,7 @@ export default function Home() {
     setPlayerName("");
     setPlayerData(null);
     setFetchError(null);
+    setPlayerDataReady(false);
     setMatches([]);
     accountRef.current = null;
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -168,6 +173,7 @@ export default function Home() {
       {phase === "scanning" && (
         <AnalysisOverlay
           playerName={playerName}
+          ready={playerDataReady}
           onComplete={handleAnalysisComplete}
         />
       )}
