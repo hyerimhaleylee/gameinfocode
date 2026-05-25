@@ -485,6 +485,7 @@ interface RawRankedMode {
   roundsPlayed: number;
   wins: number;
   kills: number;
+  deaths?: number;
   losses: number;
   damageDealt: number;
   currentTier: { tier: string; subTier: string };
@@ -504,7 +505,7 @@ export function getAllRankedModeRows(
     .map((key) => {
       const m = rankedStats[key] as RawRankedMode;
       const meta = MODE_META[key] ?? { team: key, perspective: "-" };
-      const deaths = Math.max(m.losses, 1);
+      const deaths = Math.max(m.deaths ?? m.losses, 1);
       const games = Math.max(m.roundsPlayed, 1);
       return {
         key,
