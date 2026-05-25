@@ -170,6 +170,13 @@ export async function GET(req: NextRequest) {
 
     supabase.from("searches").insert({ query: playerName }).then(() => {});
 
+    const weaponStatsPromise = !seasonParam
+      ? Promise.race([
+          getWeaponStats(accountId, shard).catch(() => null),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000)),
+        ])
+      : Promise.resolve(null);
+
     let gameModeStats: Record<string, RawModeStats>;
     let seasonId: string;
     let seasonLabel: string;
@@ -245,18 +252,6 @@ export async function GET(req: NextRequest) {
         ].filter(s => s.id !== skipId);
 
         for (const s of ordered.slice(0, 14)) {
-          let seasonCached = null;
-          try { seasonCached = await getSeasonCached(accountId, s.id, shard); } catch { /* fall through to API */ }
-
-          if (seasonCached && totalGamesIn(seasonCached.game_mode_stats as Record<string, RawModeStats>) > 0) {
-            foundSeason = { id: s.id, stats: seasonCached.game_mode_stats as Record<string, RawModeStats> };
-            foundSeasonRanked = seasonCached.ranked_data as Record<string, unknown> | null;
-            const cachedWeapon = seasonCached.weapon_ratio as WeaponRatio | null;
-            if (cachedWeapon) weaponRatioFromCache = cachedWeapon;
-            seasonDataFromCache = true;
-            break;
-          }
-
           try {
             const data = await getSeasonStats(accountId, s.id, shard, { cache: "no-store" } as RequestInit);
             const stats = data.data.attributes.gameModeStats as Record<string, RawModeStats>;
@@ -398,14 +393,6 @@ export async function GET(req: NextRequest) {
       seasonId = "lifetime";
       seasonLabel = "전체 (라이프타임)";
     }
-
-    // Weapon stats: only on initial search (no seasonParam) and only on cache miss
-    const weaponStatsPromise = (!seasonParam && !weaponRatioFromCache)
-      ? Promise.race([
-          getWeaponStats(accountId, shard).catch(() => null),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000)),
-        ])
-      : Promise.resolve(null);
 
     // ── Mode / team selection ──────────────────────────────────────────────
     const availableNormalTeams = getAvailableNormalTeams(gameModeStats);
