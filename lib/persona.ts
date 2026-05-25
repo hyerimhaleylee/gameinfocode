@@ -485,8 +485,8 @@ interface RawRankedMode {
   roundsPlayed: number;
   wins: number;
   kills: number;
-  deaths?: number;
-  losses?: number;
+  kdRatio?: number;   // PUBG pre-computed KD — ranked API has no "deaths" field
+  losses?: number;    // rounds lost (roundsPlayed - wins), NOT personal deaths
   damageDealt: number;
   currentTier: { tier: string; subTier: string };
   currentRankPoint: number;
@@ -505,16 +505,17 @@ export function getAllRankedModeRows(
     .map((key) => {
       const m = rankedStats[key] as RawRankedMode;
       const meta = MODE_META[key] ?? { team: key, perspective: "-" };
-      const rawDeaths = m.deaths ?? m.losses ?? (m.roundsPlayed - m.wins);
-      const deaths = Math.max(isNaN(rawDeaths) ? m.roundsPlayed - m.wins : rawDeaths, 1);
       const games = Math.max(m.roundsPlayed, 1);
       const kills = m.kills ?? 0;
+      const kdStr = m.kdRatio != null
+        ? m.kdRatio.toFixed(2)
+        : (kills > 0 ? (kills / Math.max(m.losses ?? (m.roundsPlayed - m.wins), 1)).toFixed(2) : "—");
       return {
         key,
         team: meta.team,
         perspective: meta.perspective,
         gamesStr: m.roundsPlayed.toLocaleString(),
-        kdStr: kills > 0 && deaths > 0 ? (kills / deaths).toFixed(2) : "—",
+        kdStr,
         winRateStr: ((m.wins / games) * 100).toFixed(1) + "%",
         avgDamageStr: Math.round(m.damageDealt / games).toString(),
         currentTier: tierStr(m.currentTier),
@@ -575,16 +576,23 @@ export function extractTeamStats(
 
 export function adaptRankedToNormal(rankedStats: Record<string, unknown>): RawModeStats | null {
   for (const key of ["squad-fpp", "squad"]) {
-    const m = rankedStats[key] as { roundsPlayed?: number; wins?: number; kills?: number; deaths?: number; losses?: number; damageDealt?: number } | undefined;
+    const m = rankedStats[key] as { roundsPlayed?: number; wins?: number; kills?: number; kdRatio?: number; losses?: number; damageDealt?: number } | undefined;
     if ((m?.roundsPlayed ?? 0) > 0) {
+      const apiKills = m!.kills ?? 0;
+      const apiKD = m!.kdRatio;
+      // Back-calculate personal deaths from PUBG's pre-computed kdRatio
+      // ranked API has no "deaths" field; losses = rounds lost (not personal deaths)
+      const deathsForKd = (apiKD != null && apiKD > 0 && apiKills > 0)
+        ? apiKills / apiKD
+        : (m!.losses ?? Math.max((m!.roundsPlayed ?? 1) - (m!.wins ?? 0), 1));
       return {
-        kills: m!.kills ?? 0,
+        kills: apiKills,
         assists: 0,
         dBNOs: 0,
         damageDealt: m!.damageDealt ?? 0,
         headshotKills: 0,
         longestTimeSurvived: 0,
-        losses: m!.deaths || m!.losses || Math.max((m!.roundsPlayed ?? 1) - (m!.wins ?? 0), 1),
+        losses: Math.max(deathsForKd, 1),
         roundsPlayed: m!.roundsPlayed ?? 0,
         timeSurvived: 0,
         top10s: 0,
