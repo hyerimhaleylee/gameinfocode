@@ -505,7 +505,7 @@ export function getAllRankedModeRows(
     .map((key) => {
       const m = rankedStats[key] as RawRankedMode;
       const meta = MODE_META[key] ?? { team: key, perspective: "-" };
-      const deaths = Math.max(m.deaths ?? m.losses ?? (m.roundsPlayed - m.wins), 1);
+      const deaths = Math.max(m.deaths || m.losses || (m.roundsPlayed - m.wins), 1);
       const games = Math.max(m.roundsPlayed, 1);
       return {
         key,
@@ -582,7 +582,7 @@ export function adaptRankedToNormal(rankedStats: Record<string, unknown>): RawMo
         damageDealt: m!.damageDealt ?? 0,
         headshotKills: 0,
         longestTimeSurvived: 0,
-        losses: m!.deaths ?? m!.losses ?? Math.max((m!.roundsPlayed ?? 1) - (m!.wins ?? 0), 1),
+        losses: m!.deaths || m!.losses || Math.max((m!.roundsPlayed ?? 1) - (m!.wins ?? 0), 1),
         roundsPlayed: m!.roundsPlayed ?? 0,
         timeSurvived: 0,
         top10s: 0,
