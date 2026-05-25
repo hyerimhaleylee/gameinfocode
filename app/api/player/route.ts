@@ -183,7 +183,7 @@ export async function GET(req: NextRequest) {
     const weaponStatsPromise = !seasonParam
       ? Promise.race([
           getWeaponStats(accountId, shard).catch(() => null),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000)),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
         ])
       : Promise.resolve(null);
 
@@ -209,7 +209,7 @@ export async function GET(req: NextRequest) {
         if (totalGamesIn(gameModeStats) === 0) {
           return NextResponse.json({ error: "해당 시즌에 플레이 기록이 없습니다." }, { status: 404 });
         }
-        await storeSeasonCache(accountId, seasonParam, shard, gameModeStats, null, null);
+        storeSeasonCache(accountId, seasonParam, shard, gameModeStats, null, null).catch(() => {});
       }
       const [rankedRaw] = await Promise.all([fetchAndStoreRanked(accountId, seasonParam, shard)]);
       rawRankedData = rankedRaw;
@@ -455,7 +455,7 @@ export async function GET(req: NextRequest) {
     const modeName = activeGameType === "ranked" ? "스쿼드 랭크드" : getModeLabel(modeKey);
     const allModes = getAllModeRows(gameModeStats, playerName);
 
-    const weaponStats = await weaponStatsPromise;
+    const weaponStats = weaponRatioFromCache ? null : await weaponStatsPromise;
     let weaponRatio: WeaponRatio | null = weaponRatioFromCache;
     if (weaponStats && weaponStats.totalTracked >= 10) {
       weaponRatio = { nearPct: weaponStats.nearPct, farPct: weaponStats.farPct, totalTracked: weaponStats.totalTracked };
