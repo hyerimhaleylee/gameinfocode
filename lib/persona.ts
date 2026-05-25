@@ -572,7 +572,7 @@ export function extractTeamStats(
 
 export function adaptRankedToNormal(rankedStats: Record<string, unknown>): RawModeStats | null {
   for (const key of ["squad-fpp", "squad"]) {
-    const m = rankedStats[key] as { roundsPlayed?: number; wins?: number; kills?: number; losses?: number; damageDealt?: number } | undefined;
+    const m = rankedStats[key] as { roundsPlayed?: number; wins?: number; kills?: number; deaths?: number; losses?: number; damageDealt?: number } | undefined;
     if ((m?.roundsPlayed ?? 0) > 0) {
       return {
         kills: m!.kills ?? 0,
@@ -581,7 +581,7 @@ export function adaptRankedToNormal(rankedStats: Record<string, unknown>): RawMo
         damageDealt: m!.damageDealt ?? 0,
         headshotKills: 0,
         longestTimeSurvived: 0,
-        losses: m!.losses ?? 0,
+        losses: m!.deaths ?? m!.losses ?? 0,
         roundsPlayed: m!.roundsPlayed ?? 0,
         timeSurvived: 0,
         top10s: 0,
