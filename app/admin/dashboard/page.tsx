@@ -10,15 +10,18 @@ export default async function AdminDashboard() {
 
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+  const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
   const yearStart = new Date(now.getFullYear(), 0, 1).toISOString();
 
-  const [dV, mV, yV, tV, dS, mS, yS, tS, topRaw] = await Promise.all([
+  const [dV, wV, mV, yV, tV, dS, wS, mS, yS, tS, topRaw] = await Promise.all([
     supabase.from("page_visits").select("*", { count: "exact", head: true }).gte("visited_at", todayStart),
+    supabase.from("page_visits").select("*", { count: "exact", head: true }).gte("visited_at", weekStart),
     supabase.from("page_visits").select("*", { count: "exact", head: true }).gte("visited_at", monthStart),
     supabase.from("page_visits").select("*", { count: "exact", head: true }).gte("visited_at", yearStart),
     supabase.from("page_visits").select("*", { count: "exact", head: true }),
     supabase.from("searches").select("*", { count: "exact", head: true }).gte("searched_at", todayStart),
+    supabase.from("searches").select("*", { count: "exact", head: true }).gte("searched_at", weekStart),
     supabase.from("searches").select("*", { count: "exact", head: true }).gte("searched_at", monthStart),
     supabase.from("searches").select("*", { count: "exact", head: true }).gte("searched_at", yearStart),
     supabase.from("searches").select("*", { count: "exact", head: true }),
@@ -35,8 +38,8 @@ export default async function AdminDashboard() {
     .map(([query, count]) => ({ query, count }));
 
   const data = {
-    visits: { daily: dV.count ?? 0, monthly: mV.count ?? 0, yearly: yV.count ?? 0, total: tV.count ?? 0 },
-    searches: { daily: dS.count ?? 0, monthly: mS.count ?? 0, yearly: yS.count ?? 0, total: tS.count ?? 0 },
+    visits: { daily: dV.count ?? 0, weekly: wV.count ?? 0, monthly: mV.count ?? 0, yearly: yV.count ?? 0, total: tV.count ?? 0 },
+    searches: { daily: dS.count ?? 0, weekly: wS.count ?? 0, monthly: mS.count ?? 0, yearly: yS.count ?? 0, total: tS.count ?? 0 },
     topQueries,
   };
 

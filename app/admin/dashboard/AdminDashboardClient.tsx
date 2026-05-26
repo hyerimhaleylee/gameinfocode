@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 
-type Stats = { daily: number; monthly: number; yearly: number; total: number };
+type Stats = { daily: number; weekly: number; monthly: number; yearly: number; total: number };
 type Props = {
   data: {
     visits: Stats;
@@ -112,8 +112,8 @@ export default function AdminDashboardClient({ data }: Props) {
             <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
             <p className="text-[10px] font-mono text-cyan-400/70 tracking-[0.25em]">PAGE VISITS</p>
           </div>
-          <div className="grid grid-cols-4 gap-3">
-            {[{ k: "일간", v: visits.daily }, { k: "월간", v: visits.monthly }, { k: "연간", v: visits.yearly }, { k: "누적", v: visits.total }].map(({ k, v }, i) => (
+          <div className="grid grid-cols-5 gap-3">
+            {[{ k: "일간", v: visits.daily }, { k: "주간", v: visits.weekly }, { k: "월간", v: visits.monthly }, { k: "연간", v: visits.yearly }, { k: "누적", v: visits.total }].map(({ k, v }, i) => (
               <StatCell key={k} label={k} value={v} delay={i * 0.05} />
             ))}
           </div>
@@ -128,8 +128,8 @@ export default function AdminDashboardClient({ data }: Props) {
             <div className="w-1.5 h-1.5 rounded-full bg-purple-400" />
             <p className="text-[10px] font-mono text-purple-400/70 tracking-[0.25em]">SEARCHES</p>
           </div>
-          <div className="grid grid-cols-4 gap-3">
-            {[{ k: "일간", v: searches.daily }, { k: "월간", v: searches.monthly }, { k: "연간", v: searches.yearly }, { k: "누적", v: searches.total }].map(({ k, v }, i) => (
+          <div className="grid grid-cols-5 gap-3">
+            {[{ k: "일간", v: searches.daily }, { k: "주간", v: searches.weekly }, { k: "월간", v: searches.monthly }, { k: "연간", v: searches.yearly }, { k: "누적", v: searches.total }].map(({ k, v }, i) => (
               <StatCell key={k} label={k} value={v} delay={0.1 + i * 0.05} />
             ))}
           </div>
@@ -156,6 +156,7 @@ export default function AdminDashboardClient({ data }: Props) {
         </div>
         <div className="space-y-5">
           <CompareBar label="일간" visits={visits.daily} searches={searches.daily} />
+          <CompareBar label="주간" visits={visits.weekly} searches={searches.weekly} />
           <CompareBar label="월간" visits={visits.monthly} searches={searches.monthly} />
           <CompareBar label="연간" visits={visits.yearly} searches={searches.yearly} />
           <CompareBar label="누적" visits={visits.total} searches={searches.total} />
