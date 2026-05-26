@@ -94,7 +94,7 @@ async function resolvePlayerCached(name: string) {
   supabase.from("player_cache").upsert(
     { name_lower: key, account_id: player.id, player_name: player.attributes.name, shard, cached_at: new Date().toISOString() },
     { onConflict: "name_lower" }
-  ).catch(() => {});
+  ).then(() => {}, () => {});
   return { accountId: player.id, playerName: player.attributes.name, shard };
 }
 
@@ -114,7 +114,7 @@ async function getCurrentSeasonCached(shard: string) {
     supabase.from("current_season_cache").upsert(
       { shard, season_id: season.id, cached_at: new Date().toISOString() },
       { onConflict: "shard" }
-    ).catch(() => {});
+    ).then(() => {}, () => {});
   }
   return season;
 }
