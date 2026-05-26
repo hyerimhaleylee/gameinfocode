@@ -200,19 +200,22 @@ export async function GET(req: NextRequest) {
       const cached = await getSeasonCached(accountId, seasonParam, shard);
       if (cached) {
         gameModeStats = cached.game_mode_stats as Record<string, RawModeStats>;
-        // ranked_data는 캐시 사용 안 함 — JSON 직렬화 시 필드 소실 문제로 항상 fresh fetch
+        rawRankedData = cached.ranked_data as Record<string, unknown> | null;
         const cachedWeapon = cached.weapon_ratio as WeaponRatio | null;
         if (cachedWeapon) weaponRatioFromCache = cachedWeapon;
+        seasonDataFromCache = true;
       } else {
-        const data = await getSeasonStats(accountId, seasonParam, shard);
+        const [data, rankedRaw] = await Promise.all([
+          getSeasonStats(accountId, seasonParam, shard),
+          fetchAndStoreRanked(accountId, seasonParam, shard),
+        ]);
         gameModeStats = data.data.attributes.gameModeStats;
         if (totalGamesIn(gameModeStats) === 0) {
           return NextResponse.json({ error: "해당 시즌에 플레이 기록이 없습니다." }, { status: 404 });
         }
-        storeSeasonCache(accountId, seasonParam, shard, gameModeStats, null, null).catch(() => {});
+        rawRankedData = rankedRaw;
+        storeSeasonCache(accountId, seasonParam, shard, gameModeStats, rankedRaw, null).catch(() => {});
       }
-      const [rankedRaw] = await Promise.all([fetchAndStoreRanked(accountId, seasonParam, shard)]);
-      rawRankedData = rankedRaw;
       rankedTier = extractRankedTier(rawRankedData);
       if (rawRankedData) {
         const rows = getAllRankedModeRows(rawRankedData);
@@ -261,22 +264,46 @@ export async function GET(req: NextRequest) {
           ...seasonList.filter(s => !s.attributes.isCurrentSeason),
         ].filter(s => s.id !== skipId);
         const sliced = ordered.slice(0, 14);
-        for (let i = 0; i < sliced.length && !foundSeason; i += BATCH) {
-          const batch = sliced.slice(i, i + BATCH);
-          const results = await Promise.all(
-            batch.map(async (s) => {
-              try {
-                const data = await getSeasonStats(accountId, s.id, shard, { cache: "no-store" } as RequestInit);
-                const stats = data.data.attributes.gameModeStats as Record<string, RawModeStats>;
-                return totalGamesIn(stats) > 0 ? { id: s.id, stats } : null;
-              } catch (e) {
-                return (e instanceof Error && e.message.includes("(429)")) ? "rate_limited" as const : null;
-              }
-            })
-          );
-          if (results.includes("rate_limited")) break;
-          const found = results.find((r): r is { id: string; stats: Record<string, RawModeStats> } => r !== null && r !== "rate_limited");
-          if (found) foundSeason = found;
+
+        // 1단계: 캐시 전체 병렬 확인
+        const cacheHits = await Promise.all(
+          sliced.map(async (s) => {
+            try {
+              const c = await getSeasonCached(accountId, s.id, shard);
+              if (c && totalGamesIn(c.game_mode_stats as Record<string, RawModeStats>) > 0)
+                return { id: s.id, stats: c.game_mode_stats as Record<string, RawModeStats>, ranked: c.ranked_data, weapon: c.weapon_ratio };
+            } catch { /* ignore */ }
+            return null;
+          })
+        );
+        const hitFromCache = cacheHits.find(r => r !== null);
+        if (hitFromCache) {
+          foundSeason = { id: hitFromCache.id, stats: hitFromCache.stats };
+          foundSeasonRanked = hitFromCache.ranked as Record<string, unknown> | null;
+          const w = hitFromCache.weapon as WeaponRatio | null;
+          if (w) weaponRatioFromCache = w;
+          seasonDataFromCache = true;
+        }
+
+        // 2단계: 캐시 미스 시 PUBG API 병렬 배치
+        if (!foundSeason) {
+          for (let i = 0; i < sliced.length && !foundSeason; i += BATCH) {
+            const batch = sliced.slice(i, i + BATCH);
+            const results = await Promise.all(
+              batch.map(async (s) => {
+                try {
+                  const data = await getSeasonStats(accountId, s.id, shard, { cache: "no-store" } as RequestInit);
+                  const stats = data.data.attributes.gameModeStats as Record<string, RawModeStats>;
+                  return totalGamesIn(stats) > 0 ? { id: s.id, stats } : null;
+                } catch (e) {
+                  return (e instanceof Error && e.message.includes("(429)")) ? "rate_limited" as const : null;
+                }
+              })
+            );
+            if (results.includes("rate_limited")) break;
+            const found = results.find((r): r is { id: string; stats: Record<string, RawModeStats> } => r !== null && r !== "rate_limited");
+            if (found) foundSeason = found;
+          }
         }
       }
 
