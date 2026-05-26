@@ -252,26 +252,31 @@ export async function GET(req: NextRequest) {
         }
       }
 
+      const BATCH = 3;
+
       if (!foundSeason) {
         const seasonList = await getSeasonsList(shard);
         const ordered = [
           ...seasonList.filter(s => s.attributes.isCurrentSeason),
           ...seasonList.filter(s => !s.attributes.isCurrentSeason),
         ].filter(s => s.id !== skipId);
-
-        for (const s of ordered.slice(0, 14)) {
-          try {
-            const data = await getSeasonStats(accountId, s.id, shard, { cache: "no-store" } as RequestInit);
-            const stats = data.data.attributes.gameModeStats as Record<string, RawModeStats>;
-            if (totalGamesIn(stats) > 0) {
-              foundSeason = { id: s.id, stats };
-              break;
-            }
-          } catch (e) {
-            const msg = e instanceof Error ? e.message : "";
-            if (msg.includes("(429)")) break;
-            continue;
-          }
+        const sliced = ordered.slice(0, 14);
+        for (let i = 0; i < sliced.length && !foundSeason; i += BATCH) {
+          const batch = sliced.slice(i, i + BATCH);
+          const results = await Promise.all(
+            batch.map(async (s) => {
+              try {
+                const data = await getSeasonStats(accountId, s.id, shard, { cache: "no-store" } as RequestInit);
+                const stats = data.data.attributes.gameModeStats as Record<string, RawModeStats>;
+                return totalGamesIn(stats) > 0 ? { id: s.id, stats } : null;
+              } catch (e) {
+                return (e instanceof Error && e.message.includes("(429)")) ? "rate_limited" as const : null;
+              }
+            })
+          );
+          if (results.includes("rate_limited")) break;
+          const found = results.find((r): r is { id: string; stats: Record<string, RawModeStats> } => r !== null && r !== "rate_limited");
+          if (found) foundSeason = found;
         }
       }
 
@@ -297,20 +302,23 @@ export async function GET(req: NextRequest) {
             ...altSeasonList.filter(s => s.attributes.isCurrentSeason),
             ...altSeasonList.filter(s => !s.attributes.isCurrentSeason),
           ].filter(s => s.id !== altSkipId);
-          for (const s of altOrdered.slice(0, 9)) {
-            try {
-              const data = await getSeasonStats(accountId, s.id, altShard, { cache: "no-store" } as RequestInit);
-              const stats = data.data.attributes.gameModeStats as Record<string, RawModeStats>;
-              if (totalGamesIn(stats) > 0) {
-                foundSeason = { id: s.id, stats };
-                shard = altShard;
-                break;
-              }
-            } catch (e) {
-              const msg = e instanceof Error ? e.message : "";
-              if (msg.includes("(429)")) break;
-              continue;
-            }
+          const altSliced = altOrdered.slice(0, 9);
+          for (let i = 0; i < altSliced.length && !foundSeason; i += BATCH) {
+            const batch = altSliced.slice(i, i + BATCH);
+            const results = await Promise.all(
+              batch.map(async (s) => {
+                try {
+                  const data = await getSeasonStats(accountId, s.id, altShard, { cache: "no-store" } as RequestInit);
+                  const stats = data.data.attributes.gameModeStats as Record<string, RawModeStats>;
+                  return totalGamesIn(stats) > 0 ? { id: s.id, stats, usedShard: altShard } : null;
+                } catch (e) {
+                  return (e instanceof Error && e.message.includes("(429)")) ? "rate_limited" as const : null;
+                }
+              })
+            );
+            if (results.includes("rate_limited")) break;
+            const found = results.find((r): r is { id: string; stats: Record<string, RawModeStats>; usedShard: string } => r !== null && r !== "rate_limited");
+            if (found) { foundSeason = { id: found.id, stats: found.stats }; shard = found.usedShard; }
           }
         }
       }

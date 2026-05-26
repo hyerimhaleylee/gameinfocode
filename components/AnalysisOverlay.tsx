@@ -285,15 +285,28 @@ export default function AnalysisOverlay({ playerName, ready, onComplete }: Props
                     <motion.div
                       initial={{ opacity: 0, y: 4 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="mt-3 pt-3 border-t border-cyan-500/15 flex items-center gap-3"
+                      className="mt-3 pt-3 border-t border-cyan-500/15 space-y-2"
                     >
-                      <span className="text-cyan-400 text-xs">◈</span>
-                      <span
-                        className="text-xs font-mono font-bold tracking-widest"
-                        style={{ color: "#00f5ff", textShadow: "0 0 10px rgba(0,245,255,0.8)" }}
-                      >
-                        ANALYSIS COMPLETE — PROFILE GENERATED
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-cyan-400 text-xs">◈</span>
+                        <span
+                          className="text-xs font-mono font-bold tracking-widest"
+                          style={{ color: "#00f5ff", textShadow: "0 0 10px rgba(0,245,255,0.8)" }}
+                        >
+                          ANALYSIS COMPLETE — PROFILE GENERATED
+                        </span>
+                      </div>
+                      {!ready && (
+                        <div className="flex items-center gap-2 pl-5">
+                          <motion.span
+                            animate={{ opacity: [1, 0.2, 1] }}
+                            transition={{ duration: 0.9, repeat: Infinity }}
+                            className="text-[10px] font-mono text-cyan-400/50 tracking-widest"
+                          >
+                            ▸ 데이터 수신 중...
+                          </motion.span>
+                        </div>
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>

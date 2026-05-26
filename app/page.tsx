@@ -72,6 +72,12 @@ export default function Home() {
       });
 
     fetchPromiseRef.current.then(() => setPlayerDataReady(true));
+
+    const timeout = setTimeout(() => {
+      setFetchError("서버 응답 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.");
+      setPlayerDataReady(true);
+    }, 45000);
+    fetchPromiseRef.current.then(() => clearTimeout(timeout));
   }, []);
 
   const handleAnalysisComplete = useCallback(async () => {
